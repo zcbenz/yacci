@@ -9,12 +9,15 @@ class PaccLexer implements PaccTokenStream
      * @var array
      */
     private static $map = array(
-        '/^(\s+)/Ss'                                                    => 'PaccWhitespaceToken',
-        '/^([a-zA-Z][a-zA-Z_]*)/S'                                      => 'PaccIdToken',
-        '/^(\'(?:\\\'|[^\'])*\'|"(?:\\"|[^"])*"|`(?:\\`|[^`])*`)/SU'    => 'PaccStringToken',
-        '/^(@|\\\\|\\.|=|\(|\)|:|\||\{|\}|;)/S'                         => 'PaccSpecialToken',
-        '/^(\/\*.*\*\/)/SUs'                                            => 'PaccCommentToken',
-        '/^(.)/Ss'                                                      => 'PaccBadToken',
+        '/^(%%)/S'                                                   => 'PaccSectionToken',
+        '/^(%{.*}%})/Ss'                                             => 'PaccPrologueToken',
+        '/^(%[a-zA-Z][a-zA-Z_]*)/S'                                  => 'PaccDeclarationToken',
+        '/^(\s+)/Ss'                                                 => 'PaccWhitespaceToken',
+        '/^([a-zA-Z][a-zA-Z_]*)/S'                                   => 'PaccIdToken',
+        '/^(\'(?:\\\'|[^\'])*\'|"(?:\\"|[^"])*"|`(?:\\`|[^`])*`)/SU' => 'PaccStringToken',
+        '/^(@|\\\\|\\.|=|\(|\)|:|\||\{|\}|;)/S'                      => 'PaccSpecialToken',
+        '/^(\/\*.*\*\/)/SUs'                                         => 'PaccCommentToken',
+        '/^(.)/Ss'                                                   => 'PaccBadToken',
     );
 
     /**
@@ -56,6 +59,17 @@ class PaccLexer implements PaccTokenStream
     {
         $this->line = $start_line;
         $this->string = $string;
+    }
+
+    /**
+     * Get remainder of string
+     * @return string
+     */
+    public function remainder()
+    {
+        $remainder = $this->string;
+        $this->string = '';
+        return $remainder;
     }
 
     /**
@@ -111,20 +125,19 @@ class PaccLexer implements PaccTokenStream
 
                 $code = substr($code, 1, strlen($code) - 2);
                 array_push($this->buffer, new PaccCodeToken($code, $this->line, $this->position + 1));
-                $m[1] .= $code;
+                $m[0] .= $code;
             }
 
             break;
         }
 
-        $lines = substr_count($m[1], "\n") + 
-            substr_count($m[1], "\r\n") + substr_count($m[1], "\r");
+        $lines = substr_count($m[0], "\n");
         $this->line += $lines;
 
-        if ($lines > 0) { $this->position = strlen(end(preg_split("/\r?\n|\r/", $m[1]))) + 1; }
-        else { $this->position += strlen($m[1]); }
+        if ($lines > 0) { $this->position = strlen(end(preg_split("/\r?\n|\r/", $m[0]))) + 1; }
+        else { $this->position += strlen($m[0]); }
 
-        $this->string = substr($this->string, strlen($m[1]));
+        $this->string = substr($this->string, strlen($m[0]));
 
         return $this->current = $token;
     }

@@ -16,11 +16,6 @@ class PaccParser
     private $grammar;
 
     /**
-     * @var string
-     */
-    private $grammar_name;
-
-    /**
      * @var array
      */
     private $grammar_options = array();
@@ -66,79 +61,34 @@ class PaccParser
     {
         if ($this->grammar === NULL) {
             for (;;) {
-                if ($this->stream->current() instanceof PaccIdToken &&
-                    $this->stream->current()->value === 'grammar')
+                if ($this->stream->current() instanceof PaccDeclarationToken && 
+                    $this->stream->current()->value === '%token')
                 {
                     $this->stream->next();
-                    $this->grammar_name = $this->backslashSeparatedName();
-
-                } else if ($this->stream->current() instanceof PaccIdToken && 
-                    $this->stream->current()->value === 'option')
-                {
-                    $this->stream->next();
-                    $this->options();
-
-                } else if ($this->stream->current() instanceof PaccSpecialToken && 
-                    $this->stream->current()->value === '@')
-                {
-                    $this->stream->next();
-                    $name = $this->periodSeparatedName();
-                    $this->grammar_options[$name] = $this->code();
-
+                    $this->token();
                 } else { break; }
-
-                // optional semicolon
-                if ($this->stream->current() instanceof PaccSpecialToken &&
-                    $this->stream->current()->value === ';')
-                {
-                    $this->stream->next();
-                }
             }
 
+            // encounter %%
+            if (!$this->stream->current() instanceof PaccSectionToken)
+                throw new PaccUnexpectedToken($this->stream->current());
+            $this->stream->next();
+
+            // rules section
             $this->rules();
 
+            // encounter %%
+            if (!$this->stream->current() instanceof PaccSectionToken)
+                throw new PaccUnexpectedToken($this->stream->current());
+
+            // epilogue section
+            $this->grammar_options['epilogue'] = $this->stream->remainder();
+
             $this->grammar = new PaccGrammar($this->nonterminals, $this->terminals, $this->productions, $this->start);
-            $this->grammar->name = $this->grammar_name;
             $this->grammar->options = $this->grammar_options;
         }
 
         return $this->grammar;
-    }
-
-    /**
-     * @return string
-     */
-    private function backslashSeparatedName() { return $this->separatedName('\\'); }
-
-    /**
-     * @return string
-     */
-    private function periodSeparatedName() { return $this->separatedName('.'); }
-
-    /**
-     * @return string
-     */
-    private function separatedName($separator)
-    {
-        $name = '';
-        $prev = NULL;
-
-        while ((($this->stream->current() instanceof PaccSpecialToken &&
-            $this->stream->current()->value === $separator) ||
-            $this->stream->current() instanceof PaccIdToken) &&
-            !($prev === NULL && $this->stream->current()->value === $separator) &&
-            ($prev === NULL || get_class($this->stream->current()) !== get_class($prev)))
-        {
-            $name .= $this->stream->current()->value;
-            $prev = $this->stream->current();
-            $this->stream->next();
-        }
-
-        if (!($prev instanceof PaccIdToken)) {
-            throw new PaccUnexpectedToken($this->stream->current());
-        }
-
-        return $name;
     }
 
     /**
@@ -172,64 +122,14 @@ class PaccParser
     /**
      * @return void
      */
-    private function options()
+    private function token()
     {
-        if (!($this->stream->current() instanceof PaccSpecialToken && 
-            $this->stream->current()->value === '('))
-        {
-            return $this->singleOption();
-        }
-        $this->stream->next();
+        while ($this->stream->current() instanceof PaccIdToken) {
+            $t = $this->stream->current();
+            $this->terminals->add(new PaccTerminal($t->value, $t->value, NULL));
 
-        for (;;) {
-            $this->singleOption();
-            if ($this->stream->current() instanceof PaccSpecialToken) {
-                if ($this->stream->current()->value === ')') {
-                    $this->stream->next();
-                    break;
-
-                } else if ($this->stream->current()->value === ';') {
-                    $this->stream->next();
-                    if ($this->stream->current() instanceof PaccSpecialToken &&
-                        $this->stream->current()->value === ')')
-                    {
-                        $this->stream->next();
-                        break;
-                    }
-                }
-            }
-        }
-    }
-
-    /**
-     * @return void
-     */
-    private function singleOption()
-    {
-        $name = $this->periodSeparatedName();
-        $value = NULL;
-
-        if (!($this->stream->current() instanceof PaccSpecialToken &&
-            $this->stream->current()->value === '='))
-        {
-            throw new PaccUnexpectedToken($this->stream->current());
-        }
-        $this->stream->next();
-
-        if ($this->stream->current() instanceof PaccStringToken) {
-            $value = $this->stream->current()->value;
             $this->stream->next();
-
-        } else if ($this->stream->current() instanceof PaccSpecialToken &&
-            $this->stream->current()->value === '{')
-        {
-            $value = $this->code();
-
-        } else {
-            throw new PaccUnexpectedToken($this->stream->current());
         }
-
-        $this->grammar_options[$name] = $value;
     }
 
     /**
@@ -276,7 +176,8 @@ class PaccParser
             }
             $this->stream->next();
 
-        } while (!($this->stream->current() instanceof PaccEndToken));
+        } while (!($this->stream->current() instanceof PaccEndToken) &&
+                 !($this->stream->current() instanceof PaccSectionToken));
     }
 
     /**
@@ -310,17 +211,14 @@ class PaccParser
             $this->stream->next();
 
             if ($t instanceof PaccIdToken) {
-                if (ord($t->value[0]) >= 65 /* A */ && ord($t->value[0]) <= 90 /* Z */) { // terminal
-                    $term = new PaccTerminal($t->value, $t->value, NULL);
-                    if (($found = $this->terminals->find($term)) !== NULL) { $term = $found; }
-                    else { $this->terminals->add($term); }
-
+                $term = new PaccTerminal($t->value, $t->value, NULL);
+                if (($found = $this->terminals->find($term)) !== NULL) { // terminal
+                    $term = $found;
                 } else { // nonterminal
                     $term = new PaccNonterminal($t->value);
                     if (($found = $this->nonterminals->find($term)) !== NULL) { $term = $found; }
                     else { $this->nonterminals->add($term); }
                 }
-
             } else {
                 assert($t instanceof PaccStringToken);
                 $term = new PaccTerminal($t->value, NULL, $t->value);

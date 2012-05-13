@@ -52,6 +52,7 @@ option (
     echo $calculator->calculate(file_get_contents('php://stdin')) . "\n";
 }
 
+%%
 
 expression
     : /* nothing */ { $$ = 0; }
@@ -70,3 +71,6 @@ component
     | component '*' factor { $$ = $1 * $3; }
     | component '/' factor { $$ = $1 / $3; }
     ;
+
+%%
+

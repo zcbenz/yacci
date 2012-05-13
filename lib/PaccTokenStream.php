@@ -5,6 +5,11 @@
 interface PaccTokenStream
 {
     /**
+     * @return string
+     */
+    function remainder();
+
+    /**
      * @return PaccToken
      */
     function current();

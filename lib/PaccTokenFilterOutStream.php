@@ -29,6 +29,15 @@ class PaccTokenFilterOutStream implements PaccTokenStream
     }
 
     /**
+     * Get remainder of stream
+     * @return string
+     */
+    public function remainder()
+    {
+        return $this->stream->remainder();
+    }
+
+    /**
      * Get current token
      * @retrun PaccToken
      */

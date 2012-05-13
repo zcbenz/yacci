@@ -19,44 +19,16 @@ require_once dirname(dirname(__FILE__)) . '/lib/PaccLexer.php';
 require_once dirname(dirname(__FILE__)) . '/lib/PaccParser.php';
 
 require_once dirname(dirname(__FILE__)) . '/lib/PaccGenerator.php';
-
-require_once dirname(dirname(__FILE__)) . '/lib/PaccRDGenerator.php';
-
 require_once dirname(dirname(__FILE__)) . '/lib/PaccLRGenerator.php';
 require_once dirname(dirname(__FILE__)) . '/lib/PaccLRItem.php';
 require_once dirname(dirname(__FILE__)) . '/lib/PaccLRJump.php';
 /*ENDLIBS*/
 
-$algorithms = array(
-    'RD' => 'recursive descent',
-    'LR' => 'canonical LR(1)',
-);
-$opts = array_merge(array(
-    'i' => '-', 
-    'o' => '-'
-), getopt('hi:o:fa:'));
+if ($argc < 2 || $argv[1] == '-h')
+    die('Usage: ' . $argv[0] . " [-h] input [output]\n");
 
-if (isset($opts['h'])) { $h = <<<E
-{$_SERVER['argv'][0]} [ -h ] [ -i <input> ] [ -f ] [ -o <output> ] [ -a <algorithm> ]
-    -h              show this help
-    -i <input>      input file
-    -f              force output file overwrite if exists
-    -o <output>     output file
-    -a <algorithm>  algorithm for generated  parser (default RD)
-                    (use `help` to show available algorithms)
-
-E;
-die($h); }
-
-if (isset($opts['a']) && $opts['a'] === 'help') {
-    foreach ($algorithms as $algorithm => $description) {
-        echo $algorithm . ': ' . $description . PHP_EOL;
-    }
-    die();
-}
-
-if ($opts['i'] === '-') { $opts['i'] = 'php://stdin'; }
-if ($opts['o'] === '-') { $opts['o'] = 'php://stdout'; }
+$opts['i'] = $argv[1];
+$opts['o'] = $argc > 2 ? $argv[2] : 'y.tab.c';
 
 try {
     $lines = @file($opts['i']);
@@ -69,28 +41,7 @@ try {
     $parser = new PaccParser($stream);
     $grammar = $parser->parse();
 
-    if (empty($grammar->name)) {
-        throw new Exception('`grammar` statement omitted. Cannot generated parser.');
-    }
-
-    if (!isset($opts['a'])) {
-        if (isset($grammar->options['algorithm'])) {
-            $opts['a'] = $grammar->options['algorithm'];
-        } else {
-            $opts['a'] = current(array_keys($algorithms));
-        }
-    }
-
-    if (!isset($algorithms[$opts['a']])) {
-        throw new Exception('Unknown algorithm `' . $opts['a'] . '`.');
-    }
-
-    $generatorclass = 'Pacc' . $opts['a'] . 'Generator';
-    $generator = new $generatorclass($grammar);
-
-    if (file_exists($opts['o']) && !isset($opts['f'])) {
-        throw new Exception('Output file already exists. Use -f to force overwrite.');
-    }
+    $generator = new PaccLRGenerator($grammar);
     $generator->writeToFile($opts['o']);
 
 } catch (PaccUnexpectedToken $e) {

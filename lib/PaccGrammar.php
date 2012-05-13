@@ -5,12 +5,6 @@
 class PaccGrammar
 {
     /**
-     * Grammar name
-     * @var string
-     */
-    public $name;
-
-    /**
      * Options
      * @var array
      */

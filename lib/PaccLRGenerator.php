@@ -39,19 +39,31 @@ class PaccLRGenerator extends PaccGenerator
      * Header of generated file
      * @var string
      */
-    private $header;
-
-    /**
-     * Code to put inside the generated class
-     * @var string
-     */
-    private $inner;
+    private $prologue;
 
     /**
      * Footer of generated file
      * @var string
      */
-    private $footer;
+    private $epilogue;
+
+    /**
+     * Start number of tokens
+     * @var int
+     */
+    private $tokenoff = 256;
+
+    /**
+     * Max number of tokens
+     * @var int
+     */
+    private $tokenmax = 256;
+
+    /**
+     * In which state we accept
+     * @var int
+     */
+    private $accpet_state = -1;
 
     /**
      * One indentation level
@@ -64,19 +76,6 @@ class PaccLRGenerator extends PaccGenerator
      * @var string
      */
     private $eol = PHP_EOL;
-
-    /**
-     * Prefix for terminals
-     * @var string
-     */
-    private $terminals_prefix = 'self::';
-
-    /**
-     * Name of parse method
-     * @var string
-     */
-    private $parse = 'doParse';
-
 
     /**
      * Initializes generator
@@ -101,7 +100,7 @@ class PaccLRGenerator extends PaccGenerator
         $this->computeTable();
         file_put_contents('php://stderr', "\n");
 
-        foreach (array('header', 'inner', 'footer', 'indentation', 'eol', 'terminals_prefix', 'parse') as $name) {
+        foreach (array('epilogue', 'prologue', 'tokenoff', 'indentation', 'eol') as $name) {
             if (isset($grammar->options[$name])) {
                 $this->$name = $grammar->options[$name];
             }
@@ -125,129 +124,237 @@ class PaccLRGenerator extends PaccGenerator
      */
     private function doGenerate()
     {
-        // header
-        $this->generated .= '<?php' . $this->eol;
-
-        if (strpos($this->grammar->name, '\\') === FALSE) { $classname = $this->grammar->name; }
-        else {
-            $namespace = explode('\\', $this->grammar->name);
-            $classname = array_pop($namespace);
-            $this->generated .= 'namespace ' . implode('\\', $namespace) . ';' . $this->eol;
-        }
-
-        $this->generated .= $this->header . $this->eol;
-        $this->generated .= 'class ' . $classname . $this->eol . '{' . $this->eol;
-
-        // parser
-        $table = array();
-        foreach ($this->table as $k => $v) {
-            if ($v === NULL) { continue; }
-            $table[] = $k . '=>' . $v;
-        }
-        $this->generated .= $this->indentation . 'private $_table = array(' . implode(',', $table) . ');' . $this->eol;
-        $this->generated .= $this->indentation . 'private $_table_pitch = ' . $this->table_pitch . ';' . $this->eol;
-
-        $terminals_types = array();
-        $terminals_values = array();
+        // predefined tokens
+        $terminals_types = '';
         foreach ($this->grammar->terminals as $terminal) {
             if ($terminal->type !== NULL) {
-                $terminals_types[] = $this->terminals_prefix . $terminal->type . '=>' . $terminal->index;
-            } else if ($terminal->value !== NULL) {
-                $terminals_values[] = var_export($terminal->value, TRUE) . '=>' . $terminal->index;
+                $this->tokenmax++;
+                $terminals_types .= "#define {$terminal->type} " . ($terminal->index + $this->tokenoff) . $this->eol;
             }
-
         }
-        $this->generated .= $this->indentation . 'private $_terminals_types = array(' . implode(',', $terminals_types) . ');' . $this->eol;
-        $this->generated .= $this->indentation . 'private $_terminals_values = array(' . implode(',', $terminals_values) . ');' . $this->eol;
 
-        $productions_lengths = array();
-        $productions_lefts = array();
-        foreach ($this->grammar->productions as $production) {
-            $productions_lengths[] = $production->index . '=>' . count($production->right);
-            $productions_lefts[] = $production->index . '=>' . $production->left->index;
+        // y.tab.h
+        file_put_contents('y.tab.h', $terminals_types);
 
-            $this->generated .= $this->indentation . 'private function _reduce' . $production->index . '() {' . $this->eol;
-            $this->generated .= $this->indentation . $this->indentation . 'extract(func_get_arg(0), EXTR_PREFIX_INVALID, \'_\');' . $this->eol;
-            $this->generated .= $this->indentation . $this->indentation . $this->phpizeVariables('$$ = NULL;') . $this->eol;
-
-            if ($production->code !== NULL) {
-                $this->generated .= $this->indentation . $this->indentation . $this->phpizeVariables($production->code) . $this->eol;
-            } else {
-                $this->generated .= $this->indentation . $this->indentation . $this->phpizeVariables('$$ = $1;') . $this->eol;
-            }
-
-            $this->generated .= $this->indentation . $this->indentation . $this->phpizeVariables('return $$;') . $this->eol;
-            $this->generated .= $this->indentation . '}' . $this->eol;
-        }
-        $this->generated .= $this->indentation . 'private $_productions_lengths = array(' . implode(',', $productions_lengths) . ');' . $this->eol;
-        $this->generated .= $this->indentation . 'private $_productions_lefts = array(' . implode(',', $productions_lefts) . ');' . $this->eol;
-
+        // header
         $this->generated .= <<<E
-    private function {$this->parse}() {
-        \$stack = array(NULL, 0);
-        for (;;) {
-            \$state = end(\$stack);
-            \$terminal = 0;
-            if (isset(\$this->_terminals_types[\$this->_currentTokenType()])) {
-                \$terminal = \$this->_terminals_types[\$this->_currentTokenType()];
-            } else if (isset(\$this->_terminals_values[\$this->_currentTokenLexeme()])) {
-                \$terminal = \$this->_terminals_values[\$this->_currentTokenLexeme()];
-            }
-
-            if (!isset(\$this->_table[\$state * \$this->_table_pitch + \$terminal])) {
-                throw new Exception('Illegal action.');
-            }
-
-            \$action = \$this->_table[\$state * \$this->_table_pitch + \$terminal];
-
-            if (\$action === 0) { // => accept
-                array_pop(\$stack); // go away, state!
-                return array_pop(\$stack);
-
-            } else if (\$action > 0) { // => shift
-                array_push(\$stack, \$this->_currentToken());
-                array_push(\$stack, \$action);
-                \$this->_nextToken();
-
-            } else { // \$action < 0 => reduce
-                \$popped = array_splice(\$stack, count(\$stack) - (\$this->_productions_lengths[-\$action] * 2));
-                \$args = array();
-                if (\$this->_productions_lengths[-\$action] > 0) { 
-                    foreach (range(0, (\$this->_productions_lengths[-\$action] - 1) * 2, 2) as \$i) {
-                        \$args[\$i / 2 + 1] = \$popped[\$i];
-                    }
-                }
-
-                \$goto = \$this->_table[end(\$stack) * \$this->_table_pitch + \$this->_productions_lefts[-\$action]];
-
-                \$reduce = '_reduce' . (-\$action);
-                if (method_exists(\$this, \$reduce)) {
-                    array_push(\$stack, \$this->\$reduce(\$args));
-                } else {
-                    array_push(\$stack, NULL);
-                }
-
-                array_push(\$stack, \$goto);
-            }
-        }
-    }
-
+static const char yysccsid[] = "Yacc by Zhao Cheng (zcbenz@gmail.com) 5/13/2012";
 
 E;
 
-
-        // footer
-        foreach (array('currentToken', 'currentTokenType', 'currentTokenLexeme', 'nextToken') as $method) {
-            if (isset($this->grammar->options[$method])) {
-                $this->generated .= $indentation . 'private function _' . $method . '() {' . $this->eol;
-                $this->generated .= $this->grammar->options[$method] . $this->eol;
-                $this->generated .= $indentation . '}' . $this->eol . $this->eol;
-            }
+        // productions
+        $productions = array();
+        foreach ($this->grammar->productions as $production) {
+            $length = count($production->right);
+            $productions[] = "{{$production->left->index},{$length}}";
         }
 
-        $this->generated .= $this->inner . $this->eol;
-        $this->generated .= '}' . $this->eol;
-        $this->generated .= $this->footer;
+        $this->generated .= "struct _yyproduction_t { int left, len; } _yyproductions[] = {\n  ";
+        $this->generated .= implode(',', $productions) . $this->eol . '};' . $this->eol;
+
+        // map chars to indexes
+        $terminals_map = array_pad(array(), 256, 0);
+        foreach ($this->grammar->terminals as $terminal)
+            if ($terminal->type === NULL && $terminal->value !== NULL)
+                $terminals_map[ord($terminal->value)] = $terminal->index;
+
+        $this->generated .= "int _yytermmap[] = {\n  " . implode(',', $terminals_map) . "\n};" . $this->eol;
+
+        // jump table
+        $nstates = count($this->states);
+        $this->generated .= "int _yytable[{$nstates}][{$this->table_pitch}] = {\n  ";
+        for ($i = 0; $i < $nstates; $i++) {
+            $states = array();
+            for ($j = 0; $j < $this->table_pitch; $j++) {
+                if (isset($this->table[$i * $this->table_pitch + $j]))
+                    $states[] = $this->table[$i * $this->table_pitch + $j];
+                else
+                    $states[] = '0';
+            }
+            $this->generated .= '{' . implode(',', $states) . '},';
+        }
+        $this->generated .= $this->eol . '};' . $this->eol;
+
+        // constants
+        $this->generated .= <<<E
+
+const int _yytokenoff = {$this->tokenoff};
+const int _yytokenmax = {$this->tokenmax};
+const int _yyaccept_index = {$this->accpet_state};
+
+{$terminals_types}
+#ifndef YYSTYPE
+typedef int YYSTYPE;
+#endif
+
+int yylex();
+void yyerror(const char *msg);
+
+#define YYINITSTACKSIZE 500
+#define YYMAXDEPTH  500
+
+typedef struct {
+    unsigned stacksize;
+    short    *s_base;
+    short    *s_mark;
+    short    *s_last;
+    YYSTYPE  *l_base;
+    YYSTYPE  *l_mark;
+} YYSTACKDATA;
+int      yychar;
+YYSTYPE  yyval;
+YYSTYPE  yylval;
+
+/* variables for the parser stack */
+static YYSTACKDATA yystack;
+
+#ifdef YYDEBUG
+#include <stdio.h>
+#endif
+
+#include <stdlib.h>	/* needed for malloc, etc */
+#include <string.h>	/* needed for memset */
+
+/* allocate initial stack or double stack size, up to YYMAXDEPTH */
+static int yygrowstack(YYSTACKDATA *data)
+{
+    int i;
+    unsigned newsize;
+    short *newss;
+    YYSTYPE *newvs;
+
+    if ((newsize = data->stacksize) == 0)
+        newsize = YYINITSTACKSIZE;
+    else if (newsize >= YYMAXDEPTH)
+        return -1;
+    else if ((newsize *= 2) > YYMAXDEPTH)
+        newsize = YYMAXDEPTH;
+
+    i = data->s_mark - data->s_base;
+    newss = (short *)realloc(data->s_base, newsize * sizeof(*newss));
+    if (newss == 0)
+        return -1;
+
+    data->s_base = newss;
+    data->s_mark = newss + i;
+
+    newvs = (YYSTYPE *)realloc(data->l_base, newsize * sizeof(*newvs));
+    if (newvs == 0)
+        return -1;
+
+    data->l_base = newvs;
+    data->l_mark = newvs + i;
+
+    data->stacksize = newsize;
+    data->s_last = data->s_base + newsize - 1;
+    return 0;
+}
+
+static void yyfreestack(YYSTACKDATA *data)
+{
+    free(data->s_base);
+    free(data->l_base);
+    memset(data, 0, sizeof(*data));
+}
+
+#define YYABORT  goto yyabort;
+#define YYREJECT goto yyabort;
+#define YYACCEPT goto yyaccept;
+
+int yyparse()
+{
+    int yystate;
+
+    /* init stack */
+    memset(&yystack, 0, sizeof(yystack));
+
+    if (yystack.s_base == NULL && yygrowstack(&yystack)) goto yyoverflow;
+    yystack.s_mark = yystack.s_base;
+    yystack.l_mark = yystack.l_base;
+    *yystack.s_mark = 0;
+
+    yychar = yylex();
+    for (;;) {
+        yystate = *yystack.s_mark;
+        int terminal = 0;
+
+        // translate token to index
+        if (yychar > _yytokenmax) {
+            yyerror("invalid token");
+            YYABORT;
+        } else if (yychar > _yytokenoff) { // %token stuff
+            terminal = yychar - _yytokenoff;
+        } else if (yychar > 0) {
+            terminal = _yytermmap[yychar];
+            if (terminal == 0) {
+                yyerror("invalid char");
+                YYABORT;
+            }
+        } else if (yychar < 0) {
+            yyerror("invalid input");
+            YYABORT;
+        }
+
+        int action = _yytable[yystate][terminal];
+        if (action == 0) { // => accept?
+            if (yystate * {$this->table_pitch} + terminal != _yyaccept_index) {
+                yyerror("invalid action");
+                YYABORT;
+            }
+#ifdef YYDEBUG
+            printf("Accept\\n");
+#endif
+            YYACCEPT;
+        } else if (action > 0) { // => shift
+#ifdef YYDEBUG
+            printf("Shift to %d\\n", action);
+#endif
+            if (yystack.s_mark >= yystack.s_last && yygrowstack(&yystack))
+            {
+                goto yyoverflow;
+            }
+            *++yystack.s_mark = action;
+            *++yystack.l_mark = yylval;
+            yychar = yylex();
+        } else { // action < 0 => reduce
+            action = -action - 1;
+
+            int yym = _yyproductions[action].len;
+            if (yym)
+                yyval = yystack.l_mark[1-yym];
+            else
+                memset(&yyval, 0, sizeof yyval);
+
+            //printf("Calling reduction: %d\\n", action);
+
+            yystack.s_mark -= yym;
+            yystack.l_mark -= yym;
+            
+            int go = _yytable[*yystack.s_mark][_yyproductions[action].left];
+
+#ifdef YYDEBUG
+            printf("Goto %d\\n", go);
+#endif
+            *++yystack.s_mark = go;
+            *++yystack.l_mark = yyval;
+        }
+    }
+
+yyoverflow:
+    yyerror("yacc stack overflow");
+    yyfreestack(&yystack);
+    return 2;
+
+yyabort:
+    yyfreestack(&yystack);
+    return 1;
+
+yyaccept:
+    yyfreestack(&yystack);
+    return 0;
+}
+E;
+        $this->generated .= $this->epilogue;
     }
 
     /**
@@ -295,8 +402,6 @@ E;
             $terminal->first->add($terminal->index);
         }
         $this->grammar->terminals->add($this->grammar->end);
-
-        $this->max_terminal = $i - 1;
 
         foreach ($this->grammar->nonterminals as $nonterminal) {
             $nonterminal->first = new PaccSet('integer');
@@ -452,6 +557,7 @@ E;
                 $tableindex = $state * $this->table_pitch + $item->terminalindex;
 
                 if ($item->production->__eq($this->grammar->startProduction)) { // accept
+                    $this->accpet_state = $tableindex;
                     $this->table[$tableindex] = 0;
                 } else {
                     if (isset($this->table[$tableindex])) {

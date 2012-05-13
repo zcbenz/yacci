@@ -41,6 +41,21 @@ class PaccWhitespaceToken extends PaccToken {}
 class PaccCommentToken extends PaccToken {}
 
 /**
+ * Section token
+ */
+class PaccSectionToken extends PaccToken {}
+
+/**
+ * C Header token
+ */
+class PaccPrologueToken extends PaccToken {}
+
+/**
+ * Yacc declaration token
+ */
+class PaccDeclarationToken extends PaccToken {}
+
+/**
  * End token
  */
 class PaccEndToken extends PaccToken {}
