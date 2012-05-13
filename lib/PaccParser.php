@@ -60,12 +60,17 @@ class PaccParser
     public function parse()
     {
         if ($this->grammar === NULL) {
+            $this->grammar_options['prologue'] = '';
             for (;;) {
                 if ($this->stream->current() instanceof PaccDeclarationToken && 
                     $this->stream->current()->value === '%token')
                 {
                     $this->stream->next();
                     $this->token();
+                } else if ($this->stream->current() instanceof PaccPrologueToken)
+                {
+                    $this->grammar_options['prologue'] .= $this->stream->current()->value;
+                    $this->stream->next();
                 } else { break; }
             }
 

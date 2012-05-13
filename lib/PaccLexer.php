@@ -10,7 +10,7 @@ class PaccLexer implements PaccTokenStream
      */
     private static $map = array(
         '/^(%%)/S'                                                   => 'PaccSectionToken',
-        '/^(%{.*}%})/Ss'                                             => 'PaccPrologueToken',
+        '/^%{(.*?)%}/Ss'                                            => 'PaccPrologueToken',
         '/^(%[a-zA-Z][a-zA-Z_]*)/S'                                  => 'PaccDeclarationToken',
         '/^(\s+)/Ss'                                                 => 'PaccWhitespaceToken',
         '/^([a-zA-Z][a-zA-Z_]*)/S'                                   => 'PaccIdToken',

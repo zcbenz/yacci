@@ -142,14 +142,26 @@ static const char yysccsid[] = "Yacc by Zhao Cheng (zcbenz@gmail.com) 5/13/2012"
 
 E;
 
+        $this->generated .= $this->prologue;
+
         // productions
         $productions = array();
+        $reductions = '';
+        $i = 0;
         foreach ($this->grammar->productions as $production) {
             $length = count($production->right);
             $productions[] = "{{$production->left->index},{$length}}";
+
+            if ($production->code !== NULL) {
+                $code = $this->variables2C($production->code, count($production->right));
+                $reductions .= 'case ' . $i . ':' . $this->eol;
+                $reductions .= $this->indentation . '{ ' . $code . ' }' . $this->eol;
+                $reductions .= $this->indentation . 'break;' . $this->eol;
+            }
+            $i++;
         }
 
-        $this->generated .= "struct _yyproduction_t { int left, len; } _yyproductions[] = {\n  ";
+        $this->generated .= "struct yyproduction_t { int left, len; } yyproductions[] = {\n  ";
         $this->generated .= implode(',', $productions) . $this->eol . '};' . $this->eol;
 
         // map chars to indexes
@@ -158,11 +170,11 @@ E;
             if ($terminal->type === NULL && $terminal->value !== NULL)
                 $terminals_map[ord($terminal->value)] = $terminal->index;
 
-        $this->generated .= "int _yytermmap[] = {\n  " . implode(',', $terminals_map) . "\n};" . $this->eol;
+        $this->generated .= "int yytermmap[] = {\n  " . implode(',', $terminals_map) . "\n};" . $this->eol;
 
         // jump table
         $nstates = count($this->states);
-        $this->generated .= "int _yytable[{$nstates}][{$this->table_pitch}] = {\n  ";
+        $this->generated .= "int yytable[{$nstates}][{$this->table_pitch}] = {\n  ";
         for ($i = 0; $i < $nstates; $i++) {
             $states = array();
             for ($j = 0; $j < $this->table_pitch; $j++) {
@@ -178,9 +190,9 @@ E;
         // constants
         $this->generated .= <<<E
 
-const int _yytokenoff = {$this->tokenoff};
-const int _yytokenmax = {$this->tokenmax};
-const int _yyaccept_index = {$this->accpet_state};
+const int yytokenoff = {$this->tokenoff};
+const int yytokenmax = {$this->tokenmax};
+const int yyaccept_index = {$this->accpet_state};
 
 {$terminals_types}
 #ifndef YYSTYPE
@@ -279,13 +291,13 @@ int yyparse()
         int terminal = 0;
 
         // translate token to index
-        if (yychar > _yytokenmax) {
+        if (yychar > yytokenmax) {
             yyerror("invalid token");
             YYABORT;
-        } else if (yychar > _yytokenoff) { // %token stuff
-            terminal = yychar - _yytokenoff;
+        } else if (yychar > yytokenoff) { // %token stuff
+            terminal = yychar - yytokenoff;
         } else if (yychar > 0) {
-            terminal = _yytermmap[yychar];
+            terminal = yytermmap[yychar];
             if (terminal == 0) {
                 yyerror("invalid char");
                 YYABORT;
@@ -295,9 +307,9 @@ int yyparse()
             YYABORT;
         }
 
-        int action = _yytable[yystate][terminal];
+        int action = yytable[yystate][terminal];
         if (action == 0) { // => accept?
-            if (yystate * {$this->table_pitch} + terminal != _yyaccept_index) {
+            if (yystate * {$this->table_pitch} + terminal != yyaccept_index) {
                 yyerror("invalid action");
                 YYABORT;
             }
@@ -319,18 +331,20 @@ int yyparse()
         } else { // action < 0 => reduce
             action = -action - 1;
 
-            int yym = _yyproductions[action].len;
+            int yym = yyproductions[action].len;
             if (yym)
                 yyval = yystack.l_mark[1-yym];
             else
                 memset(&yyval, 0, sizeof yyval);
 
-            //printf("Calling reduction: %d\\n", action);
+            switch (action) {
+$reductions
+            }
 
             yystack.s_mark -= yym;
             yystack.l_mark -= yym;
             
-            int go = _yytable[*yystack.s_mark][_yyproductions[action].left];
+            int go = yytable[*yystack.s_mark][yyproductions[action].left];
 
 #ifdef YYDEBUG
             printf("Goto %d\\n", go);
@@ -358,13 +372,23 @@ E;
     }
 
     /**
-     * Converts special variables to PHP variables
+     * Converts special variables to C stack variables
      * @param string
      * @return string
      */
-    protected function phpizeVariables($s)
+    protected function variables2C($s, $len)
     {
-        return str_replace('$$', '$__0', preg_replace('~\$(\d+)~', '$__$1', $s));
+        $r = preg_replace('/\$\$/S', 'yyval', $s);
+        if ($r !== NULL)
+            $s = $r;
+
+        $r = preg_replace_callback('/\$([1-9]+)/S', function ($matches) use ($len) {
+            return 'yystack.l_mark[' . ($matches[1] - $len) . ']';
+        }, $s);
+        if ($r !== NULL)
+            $s = $r;
+
+        return $s;
     }
 
 

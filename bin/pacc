@@ -44,6 +44,7 @@ try {
     $generator = new PaccLRGenerator($grammar);
     $generator->writeToFile($opts['o']);
 
+    echo "done\n";
 } catch (PaccUnexpectedToken $e) {
     file_put_contents('php://stderr', 
         $e->getMessage() . PHP_EOL . 
