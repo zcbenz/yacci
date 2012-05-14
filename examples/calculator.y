@@ -1,58 +1,22 @@
-grammar Calculator
+%{
+/*
+ * Test program: Calculator
+ * by Zhao Cheng 5/13/2012
+ */
+#define YYSTYPE double
+%}
 
-option (
-    eol         = "\n";
-    indentation = "    ";
-    parse       = "doParse";
-    algorithm   = "LR";
-)
+%token NUMBER
 
-@inner {
-    const NUMBER = 1;
-
-    private $expression;
-    private $token;
-
-    public function calculate($expression)
-    {
-        $this->expression = $expression;
-        $this->_nextToken();
-        return $this->doParse();
-    }
-}
-
-@currentToken {
-    return $this->token;
-}
-
-@currentTokenType {
-    if (preg_match('~^[0-9]+$~', $this->token)) {
-        return self::NUMBER;
-    }
-    return NULL;
-}
-
-@currentTokenLexeme {
-    return $this->token;
-}
-
-@nextToken {
-    if (!preg_match('~^([0-9]+|\(|\)|\+|-|\*|/)~', $this->expression, $m)) {
-        $this->expression = NULL;
-        $this->token = NULL;
-        return;
-    }
-
-    $this->token = $m[1];
-    $this->expression = substr($this->expression, strlen($m[1]));
-}
-
-@footer {
-    $calculator = new Calculator;
-    echo $calculator->calculate(file_get_contents('php://stdin')) . "\n";
-}
+%{
+#include <stdio.h>
+%}
 
 %%
+
+statement
+    : expression { printf("= %f\n", $$); }
+    ;
 
 expression
     : /* nothing */ { $$ = 0; }
@@ -62,7 +26,7 @@ expression
     ;
 
 factor
-    : NUMBER { $$ = intval($1); }
+    : NUMBER { $$ = $1; }
     | '(' expression ')' { $$ = $2; }
     ;
 
@@ -74,3 +38,15 @@ component
 
 %%
 
+int main()
+{
+    while (yyparse() == 0)
+        ;
+
+    return 0;
+}
+
+void yyerror(const char *msg)
+{
+    fprintf(stderr, "Error: %s\n", msg);
+}

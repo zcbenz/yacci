@@ -1,6 +1,8 @@
 # pacc – PHP yACC
 
-Parser generator (currently generates recursive descent parser and canonical LR(1) parser) for PHP.
+Parser generator which generated standard C code, written in PHP.
+
+This project is forked from [pacc](https://github.com/jakubkulhan/pacc), which generated PHP code.
 
 ## Get ready
 
@@ -12,19 +14,23 @@ There is executable `bin/pacc`. However it is dependant on its location in files
 
 ## Write parsers
 
+The grammer file's syntax is the same with yacc. You need to use `lex` to provide a valid `yylex` function.
+
 Files consumed by `pacc` are structured like this:
 
-    grammar <<parser_name>>;
+    %{
+        PROLOGUE
+    %}
 
-    option <<option_name>> = <<option_value>>;
+    BISON DECLARATIONS
 
-    @<<code>> {
-        <<php code>>
-    }
+    %%
+    GRAMMAR RULES
+    %%
 
-    <<rules>>
+    EPILOGUE
 
-Rules are compiled into PHP parser code, header and footer are left as they are.
+Rules are compiled into C parser code, header and footer are left as they are.
 
 `pacc` uses YACC/Bison syntax for rules. Each rule constist of its name, `:`, body, and `;`. Name has to match regular expression `[a-z][a-z_]*`. Body consists of expressions separated by vertical bar – `|`. Each expression can have some attached PHP code. For example:
 
@@ -33,7 +39,7 @@ Rules are compiled into PHP parser code, header and footer are left as they are.
         | number '-' number { $$ = $1 - $3; }
         ;
 
-In PHP code, you can use special variables like `$$`, `$1`, `$2`, `$3`,  etc. In `$$` is saved result of expression. Through numerical variables you get result of subexpressions.
+In C code, you can use special variables like `$$`, `$1`, `$2`, `$3`,  etc. In `$$` is saved result of expression. Through numerical variables you get result of subexpressions.
 
 Look for inspiration in `examples/` directory.
 
@@ -42,6 +48,7 @@ Look for inspiration in `examples/` directory.
 The MIT license
 
     Copyright (c) 2009-2010 Jakub Kulhan <jakub.kulhan@gmail.com>
+    Copyright (c) 2012 Zhao Cheng <zcbenz@gmail.com>
 
     Permission is hereby granted, free of charge, to any person
     obtaining a copy of this software and associated documentation
