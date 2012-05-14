@@ -20,6 +20,11 @@ class PaccProduction
     public $index;
 
     /**
+     * @var int
+     */
+    public $precedence = NULL;
+
+    /**
      * @var string
      */
     public $code;
@@ -37,6 +42,13 @@ class PaccProduction
         foreach ($right as $symbol) {
             if (!($symbol instanceof PaccSymbol)) {
                 throw new InvalidArgumentException('Right has to be array of PaccSymbol.');
+            }
+
+            // each rule gets its precedence from
+            // the last terminal symbol mentioned in the components.
+            if ($symbol instanceof PaccTerminal)
+            {
+                $this->precedence = $symbol->precedence;
             }
         }
         $this->right = $right;

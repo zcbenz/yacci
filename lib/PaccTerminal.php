@@ -15,6 +15,11 @@ class PaccTerminal extends PaccSymbol
     public $value;
 
     /**
+     * @var int
+     */
+    public $precedence = NULL;
+
+    /**
      * Inizializes instance
      * @param string
      * @param string

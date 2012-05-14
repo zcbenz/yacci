@@ -26,6 +26,11 @@ class PaccLRGenerator extends PaccGenerator
     private $jumps;
 
     /**
+     * @var PaccSymbol[]
+     */
+    private $index_map;
+
+    /**
      * @var int[]
      */
     private $table = array();
@@ -424,6 +429,7 @@ E;
             $terminal->index = $i++;
             $terminal->first = new PaccSet('integer');
             $terminal->first->add($terminal->index);
+            $this->index_map[$terminal->index] = $terminal;
         }
         $this->grammar->terminals->add($this->grammar->end);
 
@@ -431,6 +437,7 @@ E;
             $nonterminal->first = new PaccSet('integer');
             $nonterminal->follow = new PaccSet('integer');
             $nonterminal->index = $i++;
+            $this->index_map[$terminal->index] = $terminal;
         }
 
         $this->table_pitch = $i - 1;
@@ -584,9 +591,33 @@ E;
                     $this->accpet_state = $tableindex;
                     $this->table[$tableindex] = 0;
                 } else {
+                    $do_reduce = TRUE;
                     if (isset($this->table[$tableindex])) {
                         if ($this->table[$tableindex] > 0) {
-                            throw new Exception('Shift-reduce conflict.');
+                            $terminal = $this->index_map[$item->terminalindex];
+                            assert($terminal instanceof PaccTerminal);
+                            if ($item->production->precedence === NULL &&
+                                $terminal->precedence === NULL)
+                            {
+                                throw new Exception('Shift-reduce conflict: ' . $item);
+                            } else if ($item->production->precedence === NULL ||
+                                       $terminal->precedence === NULL)
+                            {
+                                // shift, do nothing
+                                $do_reduce = FALSE;
+                            } else if (abs($item->production->precedence) < abs($terminal->precedence))
+                            {
+                                // shift, do nothing
+                                $do_reduce = FALSE;
+                            } else if (abs($item->production->precedence) == abs($terminal->precedence))
+                            {
+                                // shift/reduce by associativity of production
+                                $do_reduce == $terminal->precedence > 0;
+                            } else
+                            {
+                                // reduce
+                                $do_reduce = TRUE;
+                            }
                         } else if ($this->table[$tableindex] < 0) {
                             throw new Exception('Reduce-reduce conflict: ' . $item);
                         } else {
@@ -594,7 +625,8 @@ E;
                         }
                     }
 
-                    $this->table[$tableindex] = -$item->production->index;
+                    if ($do_reduce)
+                        $this->table[$tableindex] = -$item->production->index;
                 }
             }
 

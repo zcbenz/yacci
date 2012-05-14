@@ -7,33 +7,36 @@
 %}
 
 %token NUMBER
+%left '+' '-'
+%left '*' '/'
+%right '^'
 
 %{
 #include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
 %}
 
 %%
 
 statement
-    : expression { printf("= %f\n", $$); }
+    : /* empty */ { exit(0); }
+    | expression { printf("= %f\n", $$); }
     ;
 
 expression
-    : /* nothing */ { $$ = 0; }
-    | component { $$ = $1; }
-    | expression '+' component { $$ = $1 + $3; }
-    | expression '-' component { $$ = $1 - $3; }
+    : factor { $$ = $1; }
+    | expression '*' expression { $$ = $1 * $3; }
+    | expression '/' expression { $$ = $1 / $3; }
+    | expression '+' expression { $$ = $1 + $3; }
+    | expression '-' expression { $$ = $1 - $3; }
+    | expression '^' expression { $$ = pow($1, $3); }
     ;
 
 factor
     : NUMBER { $$ = $1; }
+    | '-' NUMBER { $$ = -$1; }
     | '(' expression ')' { $$ = $2; }
-    ;
-
-component
-    : factor { $$ = $1; }
-    | component '*' factor { $$ = $1 * $3; }
-    | component '/' factor { $$ = $1 / $3; }
     ;
 
 %%

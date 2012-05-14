@@ -36,6 +36,11 @@ class PaccParser
     private $productions;
 
     /**
+     * @var int
+     */
+    private $current_precedence = 1;
+
+    /**
      * Start symbol
      * @var PaccNonterminal
      */
@@ -67,6 +72,16 @@ class PaccParser
                 {
                     $this->stream->next();
                     $this->token();
+                } else if ($this->stream->current() instanceof PaccDeclarationToken && 
+                    $this->stream->current()->value === '%left')
+                {
+                    $this->stream->next();
+                    $this->precedence(true);
+                } else if ($this->stream->current() instanceof PaccDeclarationToken && 
+                    $this->stream->current()->value === '%right')
+                {
+                    $this->stream->next();
+                    $this->precedence(false);
                 } else if ($this->stream->current() instanceof PaccPrologueToken)
                 {
                     $this->grammar_options['prologue'] .= $this->stream->current()->value;
@@ -135,6 +150,35 @@ class PaccParser
 
             $this->stream->next();
         }
+    }
+
+    /**
+     * @return void
+     */
+    private function precedence($left = true)
+    {
+        while ($this->stream->current() instanceof PaccIdToken ||
+               $this->stream->current() instanceof PaccStringToken)
+        {
+            $t = $this->stream->current();
+            if ($t instanceof PaccIdToken) {
+                $term = new PaccTerminal($t->value, $t->value, NULL);
+                if (($found = $this->terminals->find($term)) !== NULL) { $term = $found; }
+                else { throw new PaccUnexpectedToken($t); }
+                $term->precedence = $this->current_precedence;
+            } else {
+                assert($t instanceof PaccStringToken);
+                $term = new PaccTerminal($t->value, NULL, $t->value);
+                if (($found = $this->terminals->find($term)) !== NULL) { $term = $found; }
+                else { $this->terminals->add($term); }
+                $term->precedence = $this->current_precedence;
+            }
+
+            if (!$left) $term->precedence = -$term->precedence;
+            $this->stream->next();
+        }
+
+        $this->current_precedence++;
     }
 
     /**
