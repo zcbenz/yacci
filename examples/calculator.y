@@ -10,6 +10,7 @@
 %left '+' '-'
 %left '*' '/'
 %right '^'
+%left NEG
 
 %{
 #include <stdio.h>
@@ -31,11 +32,11 @@ expression
     | expression '+' expression { $$ = $1 + $3; }
     | expression '-' expression { $$ = $1 - $3; }
     | expression '^' expression { $$ = pow($1, $3); }
+    | '-' expression %prec NEG { $$ = -$2; }
     ;
 
 factor
     : NUMBER { $$ = $1; }
-    | '-' NUMBER { $$ = -$1; }
     | '(' expression ')' { $$ = $2; }
     ;
 

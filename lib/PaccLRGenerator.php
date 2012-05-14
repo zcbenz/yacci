@@ -612,7 +612,7 @@ E;
                             } else if (abs($item->production->precedence) == abs($terminal->precedence))
                             {
                                 // shift/reduce by associativity of production
-                                $do_reduce == $terminal->precedence > 0;
+                                $do_reduce = $terminal->precedence > 0;
                             } else
                             {
                                 // reduce

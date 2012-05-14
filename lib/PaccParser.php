@@ -164,7 +164,7 @@ class PaccParser
             if ($t instanceof PaccIdToken) {
                 $term = new PaccTerminal($t->value, $t->value, NULL);
                 if (($found = $this->terminals->find($term)) !== NULL) { $term = $found; }
-                else { throw new PaccUnexpectedToken($t); }
+                else { $this->terminals->add($term); }
                 $term->precedence = $this->current_precedence;
             } else {
                 assert($t instanceof PaccStringToken);
@@ -208,8 +208,11 @@ class PaccParser
             $this->stream->next();
 
             do {
-                list($terms, $code) = $this->expression();
+                list($terms, $code, $precedence) = $this->expression();
                 $production = new PaccProduction($name, $terms, $code);
+                if ($precedence !== NULL) {
+                    $production->precedence = $precedence;
+                }
                 if (($found = $this->productions->find($production)) === NULL) {
                     $this->productions->add($production);
                 }
@@ -234,7 +237,7 @@ class PaccParser
      */
     private function expression()
     {
-        $terms = $this->terms();
+        list($terms, $precedence) = $this->terms();
 
         $code = NULL;
         if ($this->stream->current() instanceof PaccSpecialToken &&
@@ -243,7 +246,7 @@ class PaccParser
             $code = $this->code();
         }
 
-        return array($terms, $code);
+        return array($terms, $code, $precedence);
     }
 
     /**
@@ -278,6 +281,24 @@ class PaccParser
             $terms[] = $term;
         }
 
-        return $terms;
+        // contextual precedence
+        $precedence = NULL;
+        if ($this->stream->current() instanceof PaccDeclarationToken && 
+            $this->stream->current()->value === '%prec')
+        {
+            $this->stream->next();
+            if ($this->stream->current() instanceof PaccIdToken)
+            {
+                $t = $this->stream->current();
+                $term = new PaccTerminal($t->value, $t->value, NULL);
+                if (($found = $this->terminals->find($term)) !== NULL) { $term = $found; }
+                else { throw new PaccUnexpectedToken($t); }
+
+                $precedence = $term->precedence;
+                $this->stream->next();
+            }
+        }
+
+        return array($terms, $precedence);
     }
 }
