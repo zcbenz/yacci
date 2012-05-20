@@ -73,6 +73,11 @@ class YaccParser
                     $this->stream->next();
                     $this->token();
                 } else if ($this->stream->current() instanceof YaccDeclarationToken && 
+                    $this->stream->current()->value === '%type')
+                {
+                    $this->stream->next();
+                    $this->decltype();
+                } else if ($this->stream->current() instanceof YaccDeclarationToken && 
                     $this->stream->current()->value === '%left')
                 {
                     $this->stream->next();
@@ -85,6 +90,10 @@ class YaccParser
                 } else if ($this->stream->current() instanceof YaccPrologueToken)
                 {
                     $this->grammar_options['prologue'] .= $this->stream->current()->value;
+                    $this->stream->next();
+                } else if ($this->stream->current() instanceof YaccUnionToken)
+                {
+                    $this->grammar_options['union'] = $this->stream->current()->value;
                     $this->stream->next();
                 } else { break; }
             }
@@ -144,9 +153,37 @@ class YaccParser
      */
     private function token()
     {
+        $type = NULL;
+        if ($this->stream->current() instanceof YaccTypeToken) {
+            $type = $this->stream->current()->value;
+            $this->stream->next();
+        }
+
         while ($this->stream->current() instanceof YaccIdToken) {
             $t = $this->stream->current();
-            $this->terminals->add(new YaccTerminal($t->value, $t->value, NULL));
+            $term = new YaccTerminal($t->value, $t->value, NULL);
+            $term->yytype = $type;
+            $this->terminals->add($term);
+
+            $this->stream->next();
+        }
+    }
+
+    /**
+     * @return void
+     */
+    private function decltype()
+    {
+        if (!$this->stream->current() instanceof YaccTypeToken)
+            return;
+
+        $type = $this->stream->current()->value;
+        $this->stream->next();
+
+        while ($this->stream->current() instanceof YaccIdToken) {
+            $noterm = new YaccNonterminal($this->stream->current()->value);
+            $noterm->yytype = $type;
+            $this->nonterminals->add($noterm);
 
             $this->stream->next();
         }

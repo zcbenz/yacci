@@ -15,6 +15,11 @@ abstract class YaccSymbol
     public $name;
 
     /**
+     * @var string
+     */
+    public $yytype = NULL;
+
+    /**
      * Initializes instance
      * @param string
      */

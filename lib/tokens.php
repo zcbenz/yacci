@@ -51,6 +51,16 @@ class YaccSectionToken extends YaccToken {}
 class YaccPrologueToken extends YaccToken {}
 
 /**
+ * Union token
+ */
+class YaccUnionToken extends YaccToken {}
+
+/**
+ * Type token
+ */
+class YaccTypeToken extends YaccToken {}
+
+/**
  * Yacc declaration token
  */
 class YaccDeclarationToken extends YaccToken {}

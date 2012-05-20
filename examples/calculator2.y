@@ -3,20 +3,25 @@
  * Test program: Calculator
  * by Zhao Cheng 5/13/2012
  */
-#define YYSTYPE double
 %}
 
-%token NUMBER
+%token <val> NUMBER
 %left '+' '-'
 %left '*' '/'
 %right '^'
 %left NEG
+
+%type <val> expression
 
 %{
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 %}
+
+%union {
+    double val;
+}
 
 %%
 
@@ -26,18 +31,14 @@ statement
     ;
 
 expression
-    : factor { $$ = $1; }
+    : NUMBER { $$ = $1; }
+    | '(' expression ')' { $$ = $2; }
     | expression '*' expression { $$ = $1 * $3; }
     | expression '/' expression { $$ = $1 / $3; }
     | expression '+' expression { $$ = $1 + $3; }
     | expression '-' expression { $$ = $1 - $3; }
     | expression '^' expression { $$ = pow($1, $3); }
     | '-' expression %prec NEG { $$ = -$2; }
-    ;
-
-factor
-    : NUMBER { $$ = $1; }
-    | '(' expression ')' { $$ = $2; }
     ;
 
 %%

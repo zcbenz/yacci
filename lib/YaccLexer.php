@@ -10,13 +10,15 @@ class YaccLexer implements YaccTokenStream
      */
     private static $map = array(
         '/^(%%)/S'                                                   => 'YaccSectionToken',
-        '/^%{(.*?)%}/Ss'                                            => 'YaccPrologueToken',
+        '/^%union {(.*?)}/Ss'                                        => 'YaccUnionToken',
+        '/^%{(.*?)%}/Ss'                                             => 'YaccPrologueToken',
         '/^(%[a-zA-Z][a-zA-Z_]*)/S'                                  => 'YaccDeclarationToken',
         '/^(\s+)/Ss'                                                 => 'YaccWhitespaceToken',
         '/^([a-zA-Z][a-zA-Z_]*)/S'                                   => 'YaccIdToken',
         '/^(\'(?:\\\'|[^\'])*\'|"(?:\\"|[^"])*"|`(?:\\`|[^`])*`)/SU' => 'YaccStringToken',
         '/^(@|\\\\|\\.|=|\(|\)|:|\||\{|\}|;)/S'                      => 'YaccSpecialToken',
         '/^(\/\*.*\*\/)/SUs'                                         => 'YaccCommentToken',
+        '/^<([a-zA-Z][a-zA-Z_]*)>/Ss'                                => 'YaccTypeToken',
         '/^(.)/Ss'                                                   => 'YaccBadToken',
     );
 

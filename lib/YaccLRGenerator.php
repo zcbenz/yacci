@@ -41,6 +41,11 @@ class YaccLRGenerator extends YaccGenerator
     private $generated;
 
     /**
+     * @var string
+     */
+    private $union = NULL;
+
+    /**
      * Header of generated file
      * @var string
      */
@@ -57,12 +62,6 @@ class YaccLRGenerator extends YaccGenerator
      * @var int
      */
     private $tokenoff = 256;
-
-    /**
-     * Max number of tokens
-     * @var int
-     */
-    private $tokenmax = 256;
 
     /**
      * In which state we accept
@@ -105,7 +104,7 @@ class YaccLRGenerator extends YaccGenerator
         $this->computeTable();
         file_put_contents('php://stderr', "\n");
 
-        foreach (array('epilogue', 'prologue', 'tokenoff', 'indentation', 'eol') as $name) {
+        foreach (array('union', 'epilogue', 'prologue', 'tokenoff', 'indentation', 'eol') as $name) {
             if (isset($grammar->options[$name])) {
                 $this->$name = $grammar->options[$name];
             }
@@ -133,7 +132,6 @@ class YaccLRGenerator extends YaccGenerator
         $terminals_types = '';
         foreach ($this->grammar->terminals as $terminal) {
             if ($terminal->type !== NULL) {
-                $this->tokenmax++;
                 $terminals_types .= "#define {$terminal->type} " . ($terminal->index + $this->tokenoff) . $this->eol;
             }
         }
@@ -158,7 +156,7 @@ E;
             $productions[] = "{{$production->left->index},{$length}}";
 
             if ($production->code !== NULL) {
-                $code = $this->variables2C($production->code, count($production->right));
+                $code = $this->variables2C($production);
                 $reductions .= 'case ' . $i . ':' . $this->eol;
                 $reductions .= $this->indentation . '{ ' . $code . ' }' . $this->eol;
                 $reductions .= $this->indentation . 'break;' . $this->eol;
@@ -192,17 +190,27 @@ E;
         }
         $this->generated .= $this->eol . '};' . $this->eol;
 
+        // union type
+        if ($this->union != NULL) {
+            $this->generated .= $this->eol . 'typedef union {';
+            $this->generated .= $this->union . '} YYSTYPE;' . $this->eol;
+        } else {
+            $this->generated .= <<<E
+
+#ifndef YYSTYPE
+typedef int YYSTYPE;
+#endif
+
+E;
+        }
+
         // constants
         $this->generated .= <<<E
 
 const int yytokenoff = {$this->tokenoff};
-const int yytokenmax = {$this->tokenmax};
 const int yyaccept_index = {$this->accpet_state};
 
 {$terminals_types}
-#ifndef YYSTYPE
-typedef int YYSTYPE;
-#endif
 
 int yylex();
 void yyerror(const char *msg);
@@ -296,10 +304,7 @@ int yyparse()
         int terminal = 0;
 
         // translate token to index
-        if (yychar > yytokenmax) {
-            yyerror("invalid token");
-            YYABORT;
-        } else if (yychar > yytokenoff) { // %token stuff
+        if (yychar > yytokenoff) { // %token stuff
             terminal = yychar - yytokenoff;
         } else if (yychar > 0) {
             terminal = yytermmap[yychar];
@@ -378,22 +383,29 @@ E;
 
     /**
      * Converts special variables to C stack variables
-     * @param string
+     * @param Production
      * @return string
      */
-    protected function variables2C($s, $len)
+    protected function variables2C($production)
     {
-        $r = preg_replace('/\$\$/S', 'yyval', $s);
+        $len = count($production->right);
+        $code = $production->code;
+        $repl = $production->left->yytype !== NULL ?
+                        'yyval.' . $production->left->yytype : 'yyval';
+        $r = preg_replace('/\$\$/S', $repl, $code);
         if ($r !== NULL)
-            $s = $r;
+            $code = $r;
 
-        $r = preg_replace_callback('/\$([1-9]+)/S', function ($matches) use ($len) {
-            return 'yystack.l_mark[' . ($matches[1] - $len) . ']';
-        }, $s);
+        $r = preg_replace_callback('/\$([1-9]+)/S', function ($matches) use ($len, $production) {
+            $t = $production->right[$matches[1] - 1];
+            $tail = $t->yytype !== NULL ? '.' . $t->yytype : '';
+
+            return 'yystack.l_mark[' . ($matches[1] - $len) . ']' . $tail;
+        }, $code);
         if ($r !== NULL)
-            $s = $r;
+            $code = $r;
 
-        return $s;
+        return $code;
     }
 
 
