@@ -60,4 +60,3 @@ int yylex (void)
   /* Any other character is a token by itself.        */
   return c;
 }
-

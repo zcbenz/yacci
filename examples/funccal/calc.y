@@ -5,6 +5,11 @@
  */
 %}
 
+%union {
+    double val;    /* For returning numbers.  */
+    symrec *tptr;  /* For returning symbol-table pointers.  */
+}
+
 %token <val> NUMBER
 %token <tptr> VAR FNCT
 
@@ -23,11 +28,6 @@
 #include <math.h>
 #include "calc.h"  /* Contains definition of `symrec'.  */
 %}
-
-%union {
-    double val;    /* For returning numbers.  */
-    symrec *tptr;  /* For returning symbol-table pointers.  */
-}
 
 %%
 
