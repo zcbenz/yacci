@@ -2,16 +2,16 @@
 /**
  * Fills grammar from token stream
  */
-class PaccParser
+class YaccParser
 {
     /**
      * Token stream
-     * @var PaccTokenStream
+     * @var YaccTokenStream
      */
     private $stream;
 
     /**
-     * @var PaccGrammar
+     * @var YaccGrammar
      */
     private $grammar;
 
@@ -21,17 +21,17 @@ class PaccParser
     private $grammar_options = array();
 
     /**
-     * @var PaccSet<PaccNonterminal>
+     * @var YaccSet<YaccNonterminal>
      */
     private $nonterminals;
 
     /**
-     * @var PaccSet<PaccTerminal>
+     * @var YaccSet<YaccTerminal>
      */
     private $terminals;
 
     /**
-     * @var PaccSet<PaccProduction>
+     * @var YaccSet<YaccProduction>
      */
     private $productions;
 
@@ -42,47 +42,47 @@ class PaccParser
 
     /**
      * Start symbol
-     * @var PaccNonterminal
+     * @var YaccNonterminal
      */
     private $start;
 
     /**
      * Initializes instance
-     * @param PaccTokenStream
+     * @param YaccTokenStream
      */
-    public function __construct(PaccTokenStream $stream)
+    public function __construct(YaccTokenStream $stream)
     {
         $this->stream = $stream;
-        $this->terminals = new PaccSet('PaccTerminal');
-        $this->nonterminals = new PaccSet('PaccNonterminal');
-        $this->productions = new PaccSet('PaccProduction');
+        $this->terminals = new YaccSet('YaccTerminal');
+        $this->nonterminals = new YaccSet('YaccNonterminal');
+        $this->productions = new YaccSet('YaccProduction');
     }
 
     /**
      * Parse
-     * @return PaccGrammar
+     * @return YaccGrammar
      */
     public function parse()
     {
         if ($this->grammar === NULL) {
             $this->grammar_options['prologue'] = '';
             for (;;) {
-                if ($this->stream->current() instanceof PaccDeclarationToken && 
+                if ($this->stream->current() instanceof YaccDeclarationToken && 
                     $this->stream->current()->value === '%token')
                 {
                     $this->stream->next();
                     $this->token();
-                } else if ($this->stream->current() instanceof PaccDeclarationToken && 
+                } else if ($this->stream->current() instanceof YaccDeclarationToken && 
                     $this->stream->current()->value === '%left')
                 {
                     $this->stream->next();
                     $this->precedence(true);
-                } else if ($this->stream->current() instanceof PaccDeclarationToken && 
+                } else if ($this->stream->current() instanceof YaccDeclarationToken && 
                     $this->stream->current()->value === '%right')
                 {
                     $this->stream->next();
                     $this->precedence(false);
-                } else if ($this->stream->current() instanceof PaccPrologueToken)
+                } else if ($this->stream->current() instanceof YaccPrologueToken)
                 {
                     $this->grammar_options['prologue'] .= $this->stream->current()->value;
                     $this->stream->next();
@@ -90,21 +90,21 @@ class PaccParser
             }
 
             // encounter %%
-            if (!$this->stream->current() instanceof PaccSectionToken)
-                throw new PaccUnexpectedToken($this->stream->current());
+            if (!$this->stream->current() instanceof YaccSectionToken)
+                throw new YaccUnexpectedToken($this->stream->current());
             $this->stream->next();
 
             // rules section
             $this->rules();
 
             // encounter %%
-            if (!$this->stream->current() instanceof PaccSectionToken)
-                throw new PaccUnexpectedToken($this->stream->current());
+            if (!$this->stream->current() instanceof YaccSectionToken)
+                throw new YaccUnexpectedToken($this->stream->current());
 
             // epilogue section
             $this->grammar_options['epilogue'] = $this->stream->remainder();
 
-            $this->grammar = new PaccGrammar($this->nonterminals, $this->terminals, $this->productions, $this->start);
+            $this->grammar = new YaccGrammar($this->nonterminals, $this->terminals, $this->productions, $this->start);
             $this->grammar->options = $this->grammar_options;
         }
 
@@ -116,23 +116,23 @@ class PaccParser
      */
     private function code()
     {
-        if (!($this->stream->current() instanceof PaccSpecialToken &&
+        if (!($this->stream->current() instanceof YaccSpecialToken &&
             $this->stream->current()->value === '{'))
         {
-            throw new PaccUnexpectedToken($this->stream->current());
+            throw new YaccUnexpectedToken($this->stream->current());
         }
         $this->stream->next();
 
-        if (!($this->stream->current() instanceof PaccCodeToken)) {
-            throw new PaccUnexpectedToken($this->stream->current());
+        if (!($this->stream->current() instanceof YaccCodeToken)) {
+            throw new YaccUnexpectedToken($this->stream->current());
         }
         $code = $this->stream->current()->value;
         $this->stream->next();
 
-        if (!($this->stream->current() instanceof PaccSpecialToken &&
+        if (!($this->stream->current() instanceof YaccSpecialToken &&
             $this->stream->current()->value === '}'))
         {
-            throw new PaccUnexpectedToken($this->stream->current());
+            throw new YaccUnexpectedToken($this->stream->current());
         }
         $this->stream->next();
 
@@ -144,9 +144,9 @@ class PaccParser
      */
     private function token()
     {
-        while ($this->stream->current() instanceof PaccIdToken) {
+        while ($this->stream->current() instanceof YaccIdToken) {
             $t = $this->stream->current();
-            $this->terminals->add(new PaccTerminal($t->value, $t->value, NULL));
+            $this->terminals->add(new YaccTerminal($t->value, $t->value, NULL));
 
             $this->stream->next();
         }
@@ -157,18 +157,18 @@ class PaccParser
      */
     private function precedence($left = true)
     {
-        while ($this->stream->current() instanceof PaccIdToken ||
-               $this->stream->current() instanceof PaccStringToken)
+        while ($this->stream->current() instanceof YaccIdToken ||
+               $this->stream->current() instanceof YaccStringToken)
         {
             $t = $this->stream->current();
-            if ($t instanceof PaccIdToken) {
-                $term = new PaccTerminal($t->value, $t->value, NULL);
+            if ($t instanceof YaccIdToken) {
+                $term = new YaccTerminal($t->value, $t->value, NULL);
                 if (($found = $this->terminals->find($term)) !== NULL) { $term = $found; }
                 else { $this->terminals->add($term); }
                 $term->precedence = $this->current_precedence;
             } else {
-                assert($t instanceof PaccStringToken);
-                $term = new PaccTerminal($t->value, NULL, $t->value);
+                assert($t instanceof YaccStringToken);
+                $term = new YaccTerminal($t->value, NULL, $t->value);
                 if (($found = $this->terminals->find($term)) !== NULL) { $term = $found; }
                 else { $this->terminals->add($term); }
                 $term->precedence = $this->current_precedence;
@@ -187,11 +187,11 @@ class PaccParser
     private function rules()
     {
         do {
-            if (!($this->stream->current() instanceof PaccIdToken)) {
-                throw new PaccUnexpectedToken($this->stream->current());
+            if (!($this->stream->current() instanceof YaccIdToken)) {
+                throw new YaccUnexpectedToken($this->stream->current());
             }
 
-            $name = new PaccNonterminal($this->stream->current()->value);
+            $name = new YaccNonterminal($this->stream->current()->value);
             if (($found = $this->nonterminals->find($name)) !== NULL) { $name = $found; }
             else { $this->nonterminals->add($name); }
             $this->stream->next();
@@ -200,16 +200,16 @@ class PaccParser
                 $this->start = $name;
             }
 
-            if (!($this->stream->current() instanceof PaccSpecialToken &&
+            if (!($this->stream->current() instanceof YaccSpecialToken &&
                 $this->stream->current()->value === ':'))
             {
-                throw new PaccUnexpectedToken($this->stream->current());
+                throw new YaccUnexpectedToken($this->stream->current());
             }
             $this->stream->next();
 
             do {
                 list($terms, $code, $precedence) = $this->expression();
-                $production = new PaccProduction($name, $terms, $code);
+                $production = new YaccProduction($name, $terms, $code);
                 if ($precedence !== NULL) {
                     $production->precedence = $precedence;
                 }
@@ -217,19 +217,19 @@ class PaccParser
                     $this->productions->add($production);
                 }
 
-            } while ($this->stream->current() instanceof PaccSpecialToken &&
+            } while ($this->stream->current() instanceof YaccSpecialToken &&
                 $this->stream->current()->value === '|' &&
-                !($this->stream->next() instanceof PaccEndToken));
+                !($this->stream->next() instanceof YaccEndToken));
 
-            if (!($this->stream->current() instanceof PaccSpecialToken &&
+            if (!($this->stream->current() instanceof YaccSpecialToken &&
                 $this->stream->current()->value === ';'))
             {
-                throw new PaccUnexpectedToken($this->stream->current());
+                throw new YaccUnexpectedToken($this->stream->current());
             }
             $this->stream->next();
 
-        } while (!($this->stream->current() instanceof PaccEndToken) &&
-                 !($this->stream->current() instanceof PaccSectionToken));
+        } while (!($this->stream->current() instanceof YaccEndToken) &&
+                 !($this->stream->current() instanceof YaccSectionToken));
     }
 
     /**
@@ -240,7 +240,7 @@ class PaccParser
         list($terms, $precedence) = $this->terms();
 
         $code = NULL;
-        if ($this->stream->current() instanceof PaccSpecialToken &&
+        if ($this->stream->current() instanceof YaccSpecialToken &&
             $this->stream->current()->value === '{')
         {
             $code = $this->code();
@@ -256,24 +256,24 @@ class PaccParser
     {
         $terms = array();
 
-        while (($this->stream->current() instanceof PaccIdToken ||
-            $this->stream->current() instanceof PaccStringToken))
+        while (($this->stream->current() instanceof YaccIdToken ||
+            $this->stream->current() instanceof YaccStringToken))
         {
             $t = $this->stream->current();
             $this->stream->next();
 
-            if ($t instanceof PaccIdToken) {
-                $term = new PaccTerminal($t->value, $t->value, NULL);
+            if ($t instanceof YaccIdToken) {
+                $term = new YaccTerminal($t->value, $t->value, NULL);
                 if (($found = $this->terminals->find($term)) !== NULL) { // terminal
                     $term = $found;
                 } else { // nonterminal
-                    $term = new PaccNonterminal($t->value);
+                    $term = new YaccNonterminal($t->value);
                     if (($found = $this->nonterminals->find($term)) !== NULL) { $term = $found; }
                     else { $this->nonterminals->add($term); }
                 }
             } else {
-                assert($t instanceof PaccStringToken);
-                $term = new PaccTerminal($t->value, NULL, $t->value);
+                assert($t instanceof YaccStringToken);
+                $term = new YaccTerminal($t->value, NULL, $t->value);
                 if (($found = $this->terminals->find($term)) !== NULL) { $term = $found; }
                 else { $this->terminals->add($term); }
             }
@@ -283,16 +283,16 @@ class PaccParser
 
         // contextual precedence
         $precedence = NULL;
-        if ($this->stream->current() instanceof PaccDeclarationToken && 
+        if ($this->stream->current() instanceof YaccDeclarationToken && 
             $this->stream->current()->value === '%prec')
         {
             $this->stream->next();
-            if ($this->stream->current() instanceof PaccIdToken)
+            if ($this->stream->current() instanceof YaccIdToken)
             {
                 $t = $this->stream->current();
-                $term = new PaccTerminal($t->value, $t->value, NULL);
+                $term = new YaccTerminal($t->value, $t->value, NULL);
                 if (($found = $this->terminals->find($term)) !== NULL) { $term = $found; }
-                else { throw new PaccUnexpectedToken($t); }
+                else { throw new YaccUnexpectedToken($t); }
 
                 $precedence = $term->precedence;
                 $this->stream->next();

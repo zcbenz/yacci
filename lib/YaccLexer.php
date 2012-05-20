@@ -2,22 +2,22 @@
 /**
  * Converts string into stream of tokens
  */
-class PaccLexer implements PaccTokenStream
+class YaccLexer implements YaccTokenStream
 {
     /**
      * Mapping from token regexes to token classes
      * @var array
      */
     private static $map = array(
-        '/^(%%)/S'                                                   => 'PaccSectionToken',
-        '/^%{(.*?)%}/Ss'                                            => 'PaccPrologueToken',
-        '/^(%[a-zA-Z][a-zA-Z_]*)/S'                                  => 'PaccDeclarationToken',
-        '/^(\s+)/Ss'                                                 => 'PaccWhitespaceToken',
-        '/^([a-zA-Z][a-zA-Z_]*)/S'                                   => 'PaccIdToken',
-        '/^(\'(?:\\\'|[^\'])*\'|"(?:\\"|[^"])*"|`(?:\\`|[^`])*`)/SU' => 'PaccStringToken',
-        '/^(@|\\\\|\\.|=|\(|\)|:|\||\{|\}|;)/S'                      => 'PaccSpecialToken',
-        '/^(\/\*.*\*\/)/SUs'                                         => 'PaccCommentToken',
-        '/^(.)/Ss'                                                   => 'PaccBadToken',
+        '/^(%%)/S'                                                   => 'YaccSectionToken',
+        '/^%{(.*?)%}/Ss'                                            => 'YaccPrologueToken',
+        '/^(%[a-zA-Z][a-zA-Z_]*)/S'                                  => 'YaccDeclarationToken',
+        '/^(\s+)/Ss'                                                 => 'YaccWhitespaceToken',
+        '/^([a-zA-Z][a-zA-Z_]*)/S'                                   => 'YaccIdToken',
+        '/^(\'(?:\\\'|[^\'])*\'|"(?:\\"|[^"])*"|`(?:\\`|[^`])*`)/SU' => 'YaccStringToken',
+        '/^(@|\\\\|\\.|=|\(|\)|:|\||\{|\}|;)/S'                      => 'YaccSpecialToken',
+        '/^(\/\*.*\*\/)/SUs'                                         => 'YaccCommentToken',
+        '/^(.)/Ss'                                                   => 'YaccBadToken',
     );
 
     /**
@@ -28,7 +28,7 @@ class PaccLexer implements PaccTokenStream
 
     /**
      * Current token
-     * @var PaccToken
+     * @var YaccToken
      */
     private $current = NULL;
 
@@ -74,7 +74,7 @@ class PaccLexer implements PaccTokenStream
 
     /**
      * Get current token
-     * @return PaccToken
+     * @return YaccToken
      */
     public function current()
     {
@@ -84,7 +84,7 @@ class PaccLexer implements PaccTokenStream
 
     /**
      * Synonynm for lex()
-     * @return PaccToken
+     * @return YaccToken
      */
     public function next()
     {
@@ -93,23 +93,23 @@ class PaccLexer implements PaccTokenStream
 
     /**
      * Get next token
-     * @return PaccToken
+     * @return YaccToken
      */
     public function lex()
     {
         if (!empty($this->buffer)) { return $this->current = array_shift($this->buffer); }
-        if (empty($this->string)) { return $this->current = new PaccEndToken(NULL, $this->line, $this->position); }
+        if (empty($this->string)) { return $this->current = new YaccEndToken(NULL, $this->line, $this->position); }
 
         foreach (self::$map as $regex => $class) {
             if (!preg_match($regex, $this->string, $m)) { continue; }
 
             $token = new $class($m[1], $this->line, $this->position);
 
-            if ($token instanceof PaccSpecialToken && $m[1] === '{') {
+            if ($token instanceof YaccSpecialToken && $m[1] === '{') {
                 $offset = 0;
                 do {
                     if (($rbrace = strpos($this->string, '}', $offset)) === FALSE) {
-                        array_push($this->buffer, new PaccCodeToken($this->string, $this->line, $this->position + 1));
+                        array_push($this->buffer, new YaccCodeToken($this->string, $this->line, $this->position + 1));
                         return $this->current = $token;
                     }
 
@@ -124,7 +124,7 @@ class PaccLexer implements PaccTokenStream
                 } while (substr_count($test, '{') !== substr_count($test, '}'));
 
                 $code = substr($code, 1, strlen($code) - 2);
-                array_push($this->buffer, new PaccCodeToken($code, $this->line, $this->position + 1));
+                array_push($this->buffer, new YaccCodeToken($code, $this->line, $this->position + 1));
                 $m[0] .= $code;
             }
 

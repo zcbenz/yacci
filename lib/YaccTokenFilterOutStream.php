@@ -2,11 +2,11 @@
 /**
  * Filteres some tokens from stream
  */
-class PaccTokenFilterOutStream implements PaccTokenStream
+class YaccTokenFilterOutStream implements YaccTokenStream
 {
     /**
      * Stream
-     * @var PaccTokenStream
+     * @var YaccTokenStream
      */
     private $stream;
 
@@ -18,10 +18,10 @@ class PaccTokenFilterOutStream implements PaccTokenStream
 
     /**
      * Initializes filter stream
-     * @param PaccTokenStreamable stream to be filtered
+     * @param YaccTokenStreamable stream to be filtered
      * @param array tokens we do not want
      */
-    public function __construct(PaccTokenStream $stream, $out = NULL)
+    public function __construct(YaccTokenStream $stream, $out = NULL)
     {
         $this->stream = $stream;
         if (!is_array($out)) { $out = func_get_args(); array_shift($out); }
@@ -39,7 +39,7 @@ class PaccTokenFilterOutStream implements PaccTokenStream
 
     /**
      * Get current token
-     * @retrun PaccToken
+     * @retrun YaccToken
      */
     public function current()
     {
@@ -48,13 +48,13 @@ class PaccTokenFilterOutStream implements PaccTokenStream
 
     /**
      * Get next token
-     * @return PaccToken
+     * @return YaccToken
      */
     public function next()
     {
         do {
             $token = $this->stream->next();
-        } while (!($token instanceof PaccEndToken) && isset($this->out[get_class($token)]));
+        } while (!($token instanceof YaccEndToken) && isset($this->out[get_class($token)]));
         return $token;
     }
 }

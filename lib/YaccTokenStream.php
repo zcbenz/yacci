@@ -2,7 +2,7 @@
 /**
  * Token stream
  */
-interface PaccTokenStream
+interface YaccTokenStream
 {
     /**
      * @return string
@@ -10,12 +10,12 @@ interface PaccTokenStream
     function remainder();
 
     /**
-     * @return PaccToken
+     * @return YaccToken
      */
     function current();
 
     /**
-     * @return PaccToken
+     * @return YaccToken
      */
     function next();
 }

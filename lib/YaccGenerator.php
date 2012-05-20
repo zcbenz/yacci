@@ -2,7 +2,7 @@
 /**
  * Base generator
  */
-abstract class PaccGenerator
+abstract class YaccGenerator
 {
     /**
      * Generates parser

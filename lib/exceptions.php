@@ -2,14 +2,14 @@
 /**
  * Thrown if there is some unexpected token in stream
  */
-class PaccUnexpectedToken extends Exception
+class YaccUnexpectedToken extends Exception
 {
     /**
-     * @var PaccToken
+     * @var YaccToken
      */
     public $token;
 
-    public function __construct(PaccToken $t, Exception $previous = NULL)
+    public function __construct(YaccToken $t, Exception $previous = NULL)
     {
         $this->token = $t;
         parent::__construct(
@@ -27,7 +27,7 @@ class PaccUnexpectedToken extends Exception
 /**
  * Thrown when token stream unexpectedly ended
  */
-class PaccUnexpectedEnd extends Exception
+class YaccUnexpectedEnd extends Exception
 {
     public function __construct(Exception $previous = NULL)
     {
@@ -42,14 +42,14 @@ class PaccUnexpectedEnd extends Exception
 /**
  * Thrown if there is something bad with some identifier (e.g. bad caps)
  */
-class PaccBadIdentifier extends Exception
+class YaccBadIdentifier extends Exception
 {
     /**
-     * @var PaccToken
+     * @var YaccToken
      */
     public $token;
 
-    public function __construct(PaccToken $t, Exception $previous = NULL)
+    public function __construct(YaccToken $t, Exception $previous = NULL)
     {
         $this->token = $t;
         parent::__construct(

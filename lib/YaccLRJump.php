@@ -2,30 +2,30 @@
 /**
  * Represents jump from one state to another
  */
-class PaccLRJump
+class YaccLRJump
 {
     /**
      * Begining state
-     * @var PaccSet<PaccLRItem>
+     * @var YaccSet<YaccLRItem>
      */
     public $from;
 
     /**
-     * @var PaccSymbol
+     * @var YaccSymbol
      */
     public $symbol;
 
     /**
      * Ending state
-     * @var PaccSet<PaccLRItem>
+     * @var YaccSet<YaccLRItem>
      */
     public $to;
 
     /**
      * Initializes instance
-     * @param PaccSet<PaccLRItem>
-     * @param PaccSymbol
-     * @param PaccSet<PaccLRItem>
+     * @param YaccSet<YaccLRItem>
+     * @param YaccSymbol
+     * @param YaccSet<YaccLRItem>
      */
     public function __construct($from, $symbol, $to)
     {

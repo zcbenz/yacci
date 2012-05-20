@@ -2,7 +2,7 @@
 /**
  * Terminal symbol
  */
-class PaccTerminal extends PaccSymbol
+class YaccTerminal extends YaccSymbol
 {
     /**
      * @var string

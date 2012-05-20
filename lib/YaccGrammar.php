@@ -2,7 +2,7 @@
 /**
  * Represents grammar
  */
-class PaccGrammar
+class YaccGrammar
 {
     /**
      * Options
@@ -11,52 +11,52 @@ class PaccGrammar
     public $options = array();
 
     /**
-     * @var PaccSet<PaccNonterminal>
+     * @var YaccSet<YaccNonterminal>
      */
     public $nonterminals;
 
     /**
-     * @var PaccSet<PaccTerminal>
+     * @var YaccSet<YaccTerminal>
      */
     public $terminals;
 
     /**
-     * @var PaccSet<PaccProduction>
+     * @var YaccSet<YaccProduction>
      */
     public $productions;
 
     /**
-     * @var PaccNonterminal
+     * @var YaccNonterminal
      */
     public $start;
 
     /**
      * Initializes grammar G = (N, T, P, S)
-     * @param PaccSet<PaccNonterminal>
-     * @param PaccSet<PaccTerminal>
-     * @param PaccSet<PaccProduction>
-     * @param PaccNonterminal
+     * @param YaccSet<YaccNonterminal>
+     * @param YaccSet<YaccTerminal>
+     * @param YaccSet<YaccProduction>
+     * @param YaccNonterminal
      */
-    public function __construct(PaccSet $nonterminals, PaccSet $terminals, PaccSet $productions, PaccNonterminal $start)
+    public function __construct(YaccSet $nonterminals, YaccSet $terminals, YaccSet $productions, YaccNonterminal $start)
     {
         // check
-        if ($nonterminals->getType() !== 'PaccNonterminal') {
+        if ($nonterminals->getType() !== 'YaccNonterminal') {
             throw new InvalidArgumentException(
-                'PaccSet<PaccNonterminal> expected, PaccSet<' . 
+                'YaccSet<YaccNonterminal> expected, YaccSet<' . 
                 $nonterminals->getType() . '> given.'
             );
         }
 
-        if ($terminals->getType() !== 'PaccTerminal') {
+        if ($terminals->getType() !== 'YaccTerminal') {
             throw new InvalidArgumentException(
-                'PaccSet<PaccTerminal> expected, PaccSet<' .
+                'YaccSet<YaccTerminal> expected, YaccSet<' .
                 $terminals->getType() . '> given.'
             );
         }
 
-        if ($productions->getType() !== 'PaccProduction') {
+        if ($productions->getType() !== 'YaccProduction') {
             throw new InvalidArgumentException(
-                'PaccSet<PaccProduction> expected, PaccSet<' .
+                'YaccSet<YaccProduction> expected, YaccSet<' .
                 $productions->getType() . '> given.'
             );
         }

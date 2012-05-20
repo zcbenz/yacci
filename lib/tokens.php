@@ -2,12 +2,12 @@
 /**
  * Identifier token
  */
-class PaccIdToken extends PaccToken {}
+class YaccIdToken extends YaccToken {}
 
 /**
  * String token
  */
-class PaccStringToken extends PaccToken
+class YaccStringToken extends YaccToken
 {
     protected function value()
     {
@@ -23,44 +23,44 @@ class PaccStringToken extends PaccToken
 /**
  * Special character token
  */
-class PaccSpecialToken extends PaccToken {}
+class YaccSpecialToken extends YaccToken {}
 
 /**
  * Code token
  */
-class PaccCodeToken extends PaccToken {}
+class YaccCodeToken extends YaccToken {}
 
 /**
  * Whitespace token
  */
-class PaccWhitespaceToken extends PaccToken {}
+class YaccWhitespaceToken extends YaccToken {}
 
 /**
  * Comment token
  */
-class PaccCommentToken extends PaccToken {}
+class YaccCommentToken extends YaccToken {}
 
 /**
  * Section token
  */
-class PaccSectionToken extends PaccToken {}
+class YaccSectionToken extends YaccToken {}
 
 /**
  * C Header token
  */
-class PaccPrologueToken extends PaccToken {}
+class YaccPrologueToken extends YaccToken {}
 
 /**
  * Yacc declaration token
  */
-class PaccDeclarationToken extends PaccToken {}
+class YaccDeclarationToken extends YaccToken {}
 
 /**
  * End token
  */
-class PaccEndToken extends PaccToken {}
+class YaccEndToken extends YaccToken {}
 
 /**
  * Bad token
  */
-class PaccBadToken extends PaccToken {}
+class YaccBadToken extends YaccToken {}

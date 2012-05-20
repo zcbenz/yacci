@@ -2,7 +2,7 @@
 /**
  * Set implementation - always holds only one copy of some value
  */
-class PaccSet implements Iterator, Countable
+class YaccSet implements Iterator, Countable
 {
     /**
      * All values in set

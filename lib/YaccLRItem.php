@@ -2,10 +2,10 @@
 /**
  * Production with dot and terminal
  */
-class PaccLRItem
+class YaccLRItem
 {
     /**
-     * @var PaccProduction
+     * @var YaccProduction
      */
     public $production;
 
@@ -21,11 +21,11 @@ class PaccLRItem
 
     /**
      * Initializes instance
-     * @param PaccProduction
+     * @param YaccProduction
      * @param int
      * @param int
      */
-    public function __construct(PaccProduction $production, $dot, $terminalindex)
+    public function __construct(YaccProduction $production, $dot, $terminalindex)
     {
         $this->production = $production;
         $this->dot = $dot;
@@ -33,7 +33,7 @@ class PaccLRItem
     }
 
     /**
-     * @return PaccSymbol[]
+     * @return YaccSymbol[]
      */
     public function beforeDot()
     {
@@ -41,7 +41,7 @@ class PaccLRItem
     }
 
     /**
-     * @return PaccSymbol[]
+     * @return YaccSymbol[]
      */
     public function afterDot()
     {

@@ -1,22 +1,14 @@
-# pacc – PHP yACC
+# yacci - PHP yacc implementation
 
 Parser generator which generated standard C code, written in PHP.
 
-This project is forked from [pacc](https://github.com/jakubkulhan/pacc), which generated PHP code.
-
-## Get ready
-
-There is executable `bin/pacc`. However it is dependant on its location in filesystem (because of libraries in `lib/` directory), and therefore there is script `scripts/compile.php`, which compiles all needed libraries and executable into one file. Example usage of script:
-
-    $ ./scripts/compile.php pacc
-    $ chmod +x pacc
-    # mv pacc /usr/bin
+This project is forked from [PACC](https://github.com/jakubkulhan/pacc), which generated PHP code.
 
 ## Write parsers
 
 The grammer file's syntax is the same with yacc. You need to use `lex` to provide a valid `yylex` function.
 
-Files consumed by `pacc` are structured like this:
+Files consumed by `yacci` are structured like this:
 
     %{
         PROLOGUE
@@ -32,7 +24,7 @@ Files consumed by `pacc` are structured like this:
 
 Rules are compiled into C parser code, header and footer are left as they are.
 
-`pacc` uses YACC/Bison syntax for rules. Each rule constist of its name, `:`, body, and `;`. Name has to match regular expression `[a-z][a-z_]*`. Body consists of expressions separated by vertical bar – `|`. Each expression can have some attached PHP code. For example:
+`yacci` uses YACC/Bison syntax for rules. Each rule constist of its name, `:`, body, and `;`. Name has to match regular expression `[a-z][a-z_]*`. Body consists of expressions separated by vertical bar – `|`. Each expression can have some attached PHP code. For example:
 
     numerical_operation
         : number '+' number { $$ = $1 + $3; /* $1 is first number, $2 is plus sign, and $3 is second number */ }

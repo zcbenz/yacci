@@ -2,7 +2,7 @@
 /**
  * One grammar symbol
  */
-abstract class PaccSymbol
+abstract class YaccSymbol
 {
     /**
      * @var int

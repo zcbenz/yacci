@@ -2,7 +2,7 @@
 /**
  * Nonterminal symbol
  */
-class PaccNonterminal extends PaccSymbol {
+class YaccNonterminal extends YaccSymbol {
     public function __toString()
     {
         return $this->name;

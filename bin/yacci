@@ -1,0 +1,72 @@
+#!/usr/bin/php
+<?php
+/*LIBS*/
+require_once dirname(dirname(__FILE__)) . '/lib/exceptions.php';
+
+require_once dirname(dirname(__FILE__)) . '/lib/YaccSet.php';
+require_once dirname(dirname(__FILE__)) . '/lib/YaccGrammar.php';
+require_once dirname(dirname(__FILE__)) . '/lib/YaccSymbol.php';
+require_once dirname(dirname(__FILE__)) . '/lib/YaccNonterminal.php';
+require_once dirname(dirname(__FILE__)) . '/lib/YaccTerminal.php';
+require_once dirname(dirname(__FILE__)) . '/lib/YaccProduction.php';
+
+require_once dirname(dirname(__FILE__)) . '/lib/YaccToken.php';
+require_once dirname(dirname(__FILE__)) . '/lib/tokens.php';
+require_once dirname(dirname(__FILE__)) . '/lib/YaccTokenStream.php';
+require_once dirname(dirname(__FILE__)) . '/lib/YaccTokenFilterOutStream.php';
+require_once dirname(dirname(__FILE__)) . '/lib/YaccLexer.php';
+
+require_once dirname(dirname(__FILE__)) . '/lib/YaccParser.php';
+
+require_once dirname(dirname(__FILE__)) . '/lib/YaccGenerator.php';
+require_once dirname(dirname(__FILE__)) . '/lib/YaccLRGenerator.php';
+require_once dirname(dirname(__FILE__)) . '/lib/YaccLRItem.php';
+require_once dirname(dirname(__FILE__)) . '/lib/YaccLRJump.php';
+/*ENDLIBS*/
+
+if ($argc < 2 || $argv[1] == '-h')
+    die('Usage: ' . $argv[0] . " [-h] input [output]\n");
+
+$opts['i'] = $argv[1];
+$opts['o'] = $argc > 2 ? $argv[2] : 'y.tab.c';
+
+try {
+    $lines = @file($opts['i']);
+    if ($lines === FALSE) { throw new Exception('Cannot read input file.'); }
+
+    $stream = new YaccTokenFilterOutStream(
+        YaccLexer::fromString(implode('', $lines)),
+        array('YaccWhitespaceToken', 'YaccCommentToken')
+    );
+    $parser = new YaccParser($stream);
+    $grammar = $parser->parse();
+
+    $generator = new YaccLRGenerator($grammar);
+    $generator->writeToFile($opts['o']);
+
+    echo "done\n";
+} catch (YaccUnexpectedToken $e) {
+    file_put_contents('php://stderr', 
+        $e->getMessage() . PHP_EOL . 
+        ((string) $e->token->line) . ': ' . rtrim($lines[$e->token->line - 1]) . PHP_EOL .
+        str_repeat(' ', strlen((string) $e->token->line) + $e->token->position + 1) . '^' . PHP_EOL
+    );
+    die(-1);
+} catch (YaccUnexpectedEnd $e) {
+    file_put_contents('php://stderr', 
+        $e->getMessage() . PHP_EOL
+    );
+    die(-1);
+} catch (YaccBadIdentifier $e) {
+    file_put_contents('php://stderr', 
+        $e->getMessage() . PHP_EOL . 
+        ((string) $e->token->line) . ': ' . rtrim($lines[$e->token->line - 1]) . PHP_EOL .
+        str_repeat(' ', strlen((string) $e->token->line) + $e->token->position + 1) . '^' . PHP_EOL
+    );
+    die(-1);
+} catch (Exception $e) {
+    file_put_contents('php://stderr', 
+        $e->getMessage() . PHP_EOL
+    );
+    die(-1);
+}

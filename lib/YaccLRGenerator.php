@@ -2,10 +2,10 @@
 /**
  * Generates LR parser
  */
-class PaccLRGenerator extends PaccGenerator
+class YaccLRGenerator extends YaccGenerator
 {
     /**
-     * @var PaccGrammar
+     * @var YaccGrammar
      */
     private $grammar;
 
@@ -16,17 +16,17 @@ class PaccLRGenerator extends PaccGenerator
     private $table_pitch;
 
     /**
-     * @var PaccSet<PaccLRItem>[]
+     * @var YaccSet<YaccLRItem>[]
      */
     private $states;
 
     /**
-     * @var PaccLRJump[]
+     * @var YaccLRJump[]
      */
     private $jumps;
 
     /**
-     * @var PaccSymbol[]
+     * @var YaccSymbol[]
      */
     private $index_map;
 
@@ -84,9 +84,9 @@ class PaccLRGenerator extends PaccGenerator
 
     /**
      * Initializes generator
-     * @param PaccGrammar
+     * @param YaccGrammar
      */
-    public function __construct(PaccGrammar $grammar)
+    public function __construct(YaccGrammar $grammar)
     {
         $this->grammar = $grammar;
 
@@ -403,18 +403,18 @@ E;
      */
     private function augment()
     {
-        $newStart = new PaccNonterminal('$start');
-        $this->grammar->startProduction = new PaccProduction($newStart, array($this->grammar->start), NULL);
+        $newStart = new YaccNonterminal('$start');
+        $this->grammar->startProduction = new YaccProduction($newStart, array($this->grammar->start), NULL);
         $this->grammar->productions->add($this->grammar->startProduction);
         $this->grammar->nonterminals->add($newStart);
         $this->grammar->start = $newStart;
 
-        $this->grammar->epsilon = new PaccTerminal('$epsilon');
+        $this->grammar->epsilon = new YaccTerminal('$epsilon');
         $this->grammar->epsilon->index = -1;
 
-        $this->grammar->end = new PaccTerminal('$end');
+        $this->grammar->end = new YaccTerminal('$end');
         $this->grammar->end->index = 0;
-        $this->grammar->end->first = new PaccSet('integer');
+        $this->grammar->end->first = new YaccSet('integer');
         $this->grammar->end->first->add($this->grammar->end->index);
     }
 
@@ -427,15 +427,15 @@ E;
         $i = 1;
         foreach ($this->grammar->terminals as $terminal) {
             $terminal->index = $i++;
-            $terminal->first = new PaccSet('integer');
+            $terminal->first = new YaccSet('integer');
             $terminal->first->add($terminal->index);
             $this->index_map[$terminal->index] = $terminal;
         }
         $this->grammar->terminals->add($this->grammar->end);
 
         foreach ($this->grammar->nonterminals as $nonterminal) {
-            $nonterminal->first = new PaccSet('integer');
-            $nonterminal->follow = new PaccSet('integer');
+            $nonterminal->first = new YaccSet('integer');
+            $nonterminal->follow = new YaccSet('integer');
             $nonterminal->index = $i++;
             $this->index_map[$terminal->index] = $terminal;
         }
@@ -487,7 +487,7 @@ E;
 
         foreach ($this->grammar->productions as $production) {
             for ($i = 0, $len = count($production->right) - 1; $i < $len; ++$i) {
-                if ($production->right[$i] instanceof PaccTerminal) { continue; }
+                if ($production->right[$i] instanceof YaccTerminal) { continue; }
                 foreach ($production->right[$i + 1]->first as $index) {
                     if ($index === $this->grammar->epsilon->index) { continue; }
                     $production->right[$i]->follow->add($index);
@@ -499,7 +499,7 @@ E;
             $done = TRUE;
             foreach ($this->grammar->productions as $production) {
                 for ($i = 0, $len = count($production->right); $i < $len; ++$i) {
-                    if ($production->right[$i] instanceof PaccTerminal) { continue; }
+                    if ($production->right[$i] instanceof YaccTerminal) { continue; }
 
                     $empty_after = TRUE;
                     for ($j = $i + 1; $j < $len; ++$j) {
@@ -523,10 +523,10 @@ E;
      */
     private function computeStates()
     {
-        $items = new PaccSet('PaccLRItem');
-        $items->add(new PaccLRItem($this->grammar->startProduction, 0, $this->grammar->end->index));
+        $items = new YaccSet('YaccLRItem');
+        $items->add(new YaccLRItem($this->grammar->startProduction, 0, $this->grammar->end->index));
         $this->states = array($this->closure($items));
-        $symbols = new PaccSet('PaccSymbol');
+        $symbols = new YaccSet('YaccSymbol');
         $symbols->add($this->grammar->nonterminals);
         $symbols->add($this->grammar->terminals);
 
@@ -547,7 +547,7 @@ E;
                     $this->states[] = $jump;
                 }
                 
-                $this->jumps[] = new PaccLRJump($this->states[$i], $symbol, $jump);
+                $this->jumps[] = new YaccLRJump($this->states[$i], $symbol, $jump);
             }
         }
     }
@@ -595,7 +595,7 @@ E;
                     if (isset($this->table[$tableindex])) {
                         if ($this->table[$tableindex] > 0) {
                             $terminal = $this->index_map[$item->terminalindex];
-                            assert($terminal instanceof PaccTerminal);
+                            assert($terminal instanceof YaccTerminal);
                             if ($item->production->precedence === NULL &&
                                 $terminal->precedence === NULL)
                             {
@@ -641,11 +641,11 @@ E;
     /**
      * @return int
      */
-    private function getNextState(PaccSet $items, PaccSymbol $symbol)
+    private function getNextState(YaccSet $items, YaccSymbol $symbol)
     {
-        if ($items->getType() !== 'PaccLRItem') {
+        if ($items->getType() !== 'YaccLRItem') {
             throw new InvalidArgumentException(
-                'Bad type - expected PaccSet<LRItem>, given PaccSet<' .
+                'Bad type - expected YaccSet<LRItem>, given YaccSet<' .
                 $items->getType() . '>.'
             );
         }
@@ -664,13 +664,13 @@ E;
     }
 
     /**
-     * @return PaccSet<PaccLRItem>
+     * @return YaccSet<YaccLRItem>
      */
-    private function closure(PaccSet $items)
+    private function closure(YaccSet $items)
     {
-        if ($items->getType() !== 'PaccLRItem') {
+        if ($items->getType() !== 'YaccLRItem') {
             throw new InvalidArgumentException(
-                'Bad type - expected PaccSet<LRItem>, given PaccSet<' .
+                'Bad type - expected YaccSet<LRItem>, given YaccSet<' .
                 $items->getType() . '>.'
             );
         }
@@ -682,13 +682,13 @@ E;
 
             foreach ($items as $item) {
                 if (!(count($item->afterDot()) >= 1 &&
-                    current($item->afterDot()) instanceof PaccNonterminal))
+                    current($item->afterDot()) instanceof YaccNonterminal))
                 {
                     continue;
                 }
 
-                $newitems = new PaccSet('PaccLRItem');
-                $beta_first = new PaccSet('integer');
+                $newitems = new YaccSet('YaccLRItem');
+                $beta_first = new YaccSet('integer');
                 if (count($item->afterDot()) > 1) {
                     $beta_first->add(next($item->afterDot())->first);
                     $beta_first->delete($this->grammar->epsilon->index);
@@ -702,7 +702,7 @@ E;
                 foreach ($this->grammar->productions as $production) {
                     if ($B->__eq($production->left)) {
                         foreach ($beta_first as $terminalindex) {
-                            $newitems->add(new PaccLRItem($production, 0, $terminalindex));
+                            $newitems->add(new YaccLRItem($production, 0, $terminalindex));
                         }
                     }
                 }
@@ -721,20 +721,20 @@ E;
     }
 
     /**
-     * @param PaccSet<PaccLRItem>
-     * @param PaccSymbol
-     * @return PaccSet<PaccLRItem>
+     * @param YaccSet<YaccLRItem>
+     * @param YaccSymbol
+     * @return YaccSet<YaccLRItem>
      */
-    private function jump(PaccSet $items, PaccSymbol $symbol)
+    private function jump(YaccSet $items, YaccSymbol $symbol)
     {
-        if ($items->getType() !== 'PaccLRItem') {
+        if ($items->getType() !== 'YaccLRItem') {
             throw new InvalidArgumentException(
-                'Bad type - expected PaccSet<LRItem>, given PaccSet<' .
+                'Bad type - expected YaccSet<LRItem>, given YaccSet<' .
                 $items->getType() . '>.'
             );
         }
 
-        $ret = new PaccSet('PaccLRItem');
+        $ret = new YaccSet('YaccLRItem');
 
         foreach ($items as $item) {
             if (!(current($item->afterDot()) !== FALSE &&
@@ -743,7 +743,7 @@ E;
                 continue;
             }
 
-            $ret->add(new PaccLRItem($item->production, $item->dot + 1, $item->terminalindex));
+            $ret->add(new YaccLRItem($item->production, $item->dot + 1, $item->terminalindex));
         }
 
         return $this->closure($ret);

@@ -2,7 +2,7 @@
 /**
  * Represents one token
  */
-abstract class PaccToken
+abstract class YaccToken
 {
     /**
      * @var string

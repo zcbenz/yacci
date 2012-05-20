@@ -2,15 +2,15 @@
 /**
  * Grammar production
  */
-class PaccProduction
+class YaccProduction
 {
     /**
-     * @var PaccNonterminal
+     * @var YaccNonterminal
      */
     public $left;
 
     /**
-     * @var PaccSymbol[]
+     * @var YaccSymbol[]
      */
     public $right;
 
@@ -31,22 +31,22 @@ class PaccProduction
 
     /**
      * Initializes production
-     * @param PaccNonterminal
-     * @param PaccSymbol[]
+     * @param YaccNonterminal
+     * @param YaccSymbol[]
      * @param string
      */
-    public function __construct(PaccNonterminal $left, array $right, $code = NULL)
+    public function __construct(YaccNonterminal $left, array $right, $code = NULL)
     {
         $this->left = $left;
 
         foreach ($right as $symbol) {
-            if (!($symbol instanceof PaccSymbol)) {
-                throw new InvalidArgumentException('Right has to be array of PaccSymbol.');
+            if (!($symbol instanceof YaccSymbol)) {
+                throw new InvalidArgumentException('Right has to be array of YaccSymbol.');
             }
 
             // each rule gets its precedence from
             // the last terminal symbol mentioned in the components.
-            if ($symbol instanceof PaccTerminal)
+            if ($symbol instanceof YaccTerminal)
             {
                 $this->precedence = $symbol->precedence;
             }
